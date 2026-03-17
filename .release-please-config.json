@@ -3,7 +3,8 @@
     "src/cryl": {
       "release-type": "rust",
       "package-name": "cryl",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": ["../../Cargo.lock"]
     }
   }
 }

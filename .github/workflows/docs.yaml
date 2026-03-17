@@ -1,3 +1,8 @@
+name: docs
+on:
+  push:
+    branches:
+      - main
 jobs:
   docs:
     permissions:
@@ -7,14 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v15
+        with:
+          name: haras
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       - run: nix build --show-trace .#docs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./result
       - uses: actions/deploy-pages@v4
-"on":
-  push:
-    branches:
-      - main
