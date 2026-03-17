@@ -1,6 +1,6 @@
 [package]
 name = "cryl"
-version = "0.0.1"
+version = "0.1.0"
 description = "Secret generation tool"
 repository = "https://github.com/haras-unicorn/cryl"
 authors = ["haras-unicorn <github@haras-unicorn.net>"]
