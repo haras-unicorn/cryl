@@ -1,0 +1,9 @@
+{
+  "packages": {
+    "src/cryl": {
+      "release-type": "rust",
+      "package-name": "cryl",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}

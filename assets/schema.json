@@ -1,0 +1,1477 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Specification",
+  "type": "object",
+  "properties": {
+    "exports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Export"
+      }
+    },
+    "generations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Generation"
+      }
+    },
+    "imports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Import"
+      }
+    }
+  },
+  "required": [
+    "imports",
+    "generations",
+    "exports"
+  ],
+  "$defs": {
+    "AgeKeyArgs": {
+      "type": "object",
+      "properties": {
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "public",
+        "private"
+      ]
+    },
+    "CockroachCaArgs": {
+      "type": "object",
+      "properties": {
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "public",
+        "private"
+      ]
+    },
+    "CockroachClientCertArgs": {
+      "type": "object",
+      "properties": {
+        "ca_private": {
+          "type": "string"
+        },
+        "ca_public": {
+          "type": "string"
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ca_public",
+        "ca_private",
+        "user",
+        "public",
+        "private"
+      ]
+    },
+    "CockroachNodeCertArgs": {
+      "type": "object",
+      "properties": {
+        "ca_private": {
+          "type": "string"
+        },
+        "ca_public": {
+          "type": "string"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "ca_public",
+        "ca_private",
+        "hosts",
+        "public",
+        "private"
+      ]
+    },
+    "CopyExportArgs": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "CopyGenArgs": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "CopyImportArgs": {
+      "type": "object",
+      "properties": {
+        "allow_fail": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    },
+    "DataGenArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "value": true
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    },
+    "DhparamArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "EnvArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "variables"
+      ]
+    },
+    "Export": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/VaultExportArgs"
+            },
+            "exporter": {
+              "type": "string",
+              "const": "vault"
+            }
+          },
+          "required": [
+            "exporter",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/VaultFileExportArgs"
+            },
+            "exporter": {
+              "type": "string",
+              "const": "vault_file"
+            }
+          },
+          "required": [
+            "exporter",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CopyExportArgs"
+            },
+            "exporter": {
+              "type": "string",
+              "const": "copy"
+            }
+          },
+          "required": [
+            "exporter",
+            "arguments"
+          ]
+        }
+      ]
+    },
+    "Generation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CopyGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "copy"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TextGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/DataGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "json"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/DataGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "yaml"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/DataGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "toml"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/IdGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "id"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/IdGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "key"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/KeySplitArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "key-split"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/KeyCombineArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "key-combine"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/PinGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "pin"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/PasswordGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "password"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/PasswordGenArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "password-crypt-3"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/AgeKeyArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "age-key"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/SshKeyArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "ssh-key"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/WireguardKeyArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "wireguard-key"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsRootArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-root"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsIntermediaryArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-intermediary"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsLeafArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-leaf"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsRootArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-rsa-root"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsIntermediaryArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-rsa-intermediary"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/TlsLeafArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-rsa-leaf"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/DhparamArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "tls-dhparam"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/NebulaCaArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "nebula-ca"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/NebulaCertArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "nebula-cert"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CockroachCaArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "cockroach-ca"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CockroachNodeCertArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "cockroach-node-cert"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CockroachClientCertArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "cockroach-client-cert"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/EnvArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "env"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/MoustacheArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "moustache"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/ScriptArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "script"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/SopsArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "sops"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        }
+      ]
+    },
+    "IdGenArgs": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Import": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/VaultImportArgs"
+            },
+            "importer": {
+              "type": "string",
+              "const": "vault"
+            }
+          },
+          "required": [
+            "importer",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/VaultFileImportArgs"
+            },
+            "importer": {
+              "type": "string",
+              "const": "vault_file"
+            }
+          },
+          "required": [
+            "importer",
+            "arguments"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CopyImportArgs"
+            },
+            "importer": {
+              "type": "string",
+              "const": "copy"
+            }
+          },
+          "required": [
+            "importer",
+            "arguments"
+          ]
+        }
+      ]
+    },
+    "KeyCombineArgs": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "shares": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "threshold": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "key",
+        "shares",
+        "threshold"
+      ]
+    },
+    "KeySplitArgs": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "shares": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "key",
+        "prefix",
+        "shares",
+        "threshold"
+      ]
+    },
+    "MoustacheArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "template": {
+          "type": "string"
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "template",
+        "variables"
+      ]
+    },
+    "NebulaCaArgs": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "public",
+        "private"
+      ]
+    },
+    "NebulaCertArgs": {
+      "type": "object",
+      "properties": {
+        "ca_private": {
+          "type": "string"
+        },
+        "ca_public": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "ca_public",
+        "ca_private",
+        "name",
+        "ip",
+        "public",
+        "private"
+      ]
+    },
+    "PasswordGenArgs": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "public",
+        "private"
+      ]
+    },
+    "PinGenArgs": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ScriptArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "text"
+      ]
+    },
+    "SopsArgs": {
+      "type": "object",
+      "properties": {
+        "age": {
+          "type": "string"
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "secrets": true
+      },
+      "required": [
+        "age",
+        "public",
+        "private",
+        "secrets"
+      ]
+    },
+    "SshKeyArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "public",
+        "private"
+      ]
+    },
+    "TextGenArgs": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "text"
+      ]
+    },
+    "TlsIntermediaryArgs": {
+      "type": "object",
+      "properties": {
+        "ca_private": {
+          "type": "string"
+        },
+        "ca_public": {
+          "type": "string"
+        },
+        "common_name": {
+          "type": "string"
+        },
+        "config": {
+          "type": "string"
+        },
+        "days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "organization": {
+          "type": "string"
+        },
+        "pathlen": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "request": {
+          "type": "string"
+        },
+        "request_config": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "common_name",
+        "organization",
+        "config",
+        "public",
+        "private",
+        "ca_public",
+        "ca_private",
+        "request",
+        "request_config",
+        "serial"
+      ]
+    },
+    "TlsLeafArgs": {
+      "type": "object",
+      "properties": {
+        "ca_private": {
+          "type": "string"
+        },
+        "ca_public": {
+          "type": "string"
+        },
+        "common_name": {
+          "type": "string"
+        },
+        "config": {
+          "type": "string"
+        },
+        "days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "organization": {
+          "type": "string"
+        },
+        "pathlen": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "request": {
+          "type": "string"
+        },
+        "request_config": {
+          "type": "string"
+        },
+        "sans": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "serial": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "common_name",
+        "organization",
+        "config",
+        "public",
+        "private",
+        "ca_public",
+        "ca_private",
+        "request",
+        "request_config",
+        "serial",
+        "sans"
+      ]
+    },
+    "TlsRootArgs": {
+      "type": "object",
+      "properties": {
+        "common_name": {
+          "type": "string"
+        },
+        "config": {
+          "type": "string"
+        },
+        "days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "organization": {
+          "type": "string"
+        },
+        "pathlen": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "common_name",
+        "organization",
+        "config",
+        "public",
+        "private"
+      ]
+    },
+    "VaultExportArgs": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "VaultFileExportArgs": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "file"
+      ]
+    },
+    "VaultFileImportArgs": {
+      "type": "object",
+      "properties": {
+        "allow_fail": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "file": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "file"
+      ]
+    },
+    "VaultImportArgs": {
+      "type": "object",
+      "properties": {
+        "allow_fail": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "WireguardKeyArgs": {
+      "type": "object",
+      "properties": {
+        "private": {
+          "type": "string"
+        },
+        "public": {
+          "type": "string"
+        },
+        "renew": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "public",
+        "private"
+      ]
+    }
+  }
+}

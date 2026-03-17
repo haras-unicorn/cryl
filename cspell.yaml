@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/streetsidesoftware/cspell/refs/heads/main/cspell.schema.json
+useGitignore: true
+version: "0.2"
+language: en
+ignorePaths:
+  - assets/rumor.nu
+  - assets/schema.json
+  - flake.nix
+ignoreWords:
+  - haras
+  - cryl
+  - nushell
+  - bwrap
+  - docstring
+  - docstrings
+  - sandboxed
+  - nosandbox
+  - bubblewrap
+  - serde
+  - pathlen
+  - cachix
+  - makeself

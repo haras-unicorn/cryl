@@ -1,0 +1,21 @@
+jobs:
+  update:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix flake update
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          body: Automated flake.lock update.
+          branch: ci/update-flake-lock
+          commit-message: "chore: update flake.lock"
+          title: "chore: update flake.lock"
+"on":
+  schedule:
+    - cron: 0 6 * * 1
+  workflow_dispatch: {}
