@@ -117,6 +117,7 @@ rec {
 
                   fd
                   delta
+                  cachix
                 ]
                 ++ buildInputs;
 

@@ -36,3 +36,4 @@ target
 # Repository
 
 docs/book
+.env
