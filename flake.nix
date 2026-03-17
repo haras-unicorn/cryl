@@ -147,7 +147,7 @@ rec {
                   # shellcheck disable=SC2046
                   nixfmt --check $(fd '.*.nix$' .)
 
-                  markdownlint .
+                  markdownlint --ignore-path .markdownignore .
                   if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
                     # shellcheck disable=SC2046
                     markdown-link-check \
