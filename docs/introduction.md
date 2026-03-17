@@ -133,6 +133,6 @@ This specification will instruct cryl to do the following:
 cryl validates every specification against the [schema.json] file.
 
 [schema.json]:
-  https://github.com/haras-unicorn/cryl/blob/main/src/cryl/schema.json
+  https://github.com/haras-unicorn/cryl/blob/main/assets/schema.json
 [cryl flake]: https://github.com/haras-unicorn/cryl
 [bubblewrap]: https://github.com/containers/bubblewrap
