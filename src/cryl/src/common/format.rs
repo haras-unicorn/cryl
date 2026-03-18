@@ -1,6 +1,6 @@
 //! Format handling for JSON, YAML, and TOML serialization/deserialization
 
-use crate::{CrylError, Result};
+use crate::common::{CrylError, CrylResult};
 use std::path::Path;
 
 /// Supported serialization formats
@@ -43,7 +43,7 @@ impl Format {
 pub fn deserialize<T: serde::de::DeserializeOwned>(
   content: &str,
   format: Format,
-) -> Result<T> {
+) -> CrylResult<T> {
   match format {
     Format::Json => serde_json::from_str(content).map_err(CrylError::from),
     Format::Yaml => {
@@ -59,7 +59,7 @@ pub fn deserialize<T: serde::de::DeserializeOwned>(
 pub fn serialize<T: serde::Serialize>(
   value: &T,
   format: Format,
-) -> Result<String> {
+) -> CrylResult<String> {
   match format {
     Format::Json => {
       serde_json::to_string_pretty(value).map_err(CrylError::from)
@@ -76,7 +76,7 @@ pub fn serialize<T: serde::Serialize>(
 /// Deserialize from file path
 pub fn deserialize_from_file<T: serde::de::DeserializeOwned, P: AsRef<Path>>(
   path: P,
-) -> Result<T> {
+) -> CrylResult<T> {
   let path = path.as_ref();
   let format = Format::detect_from_path(path).ok_or_else(|| {
     CrylError::InvalidFormat(format!("Unknown format for {:?}", path))
@@ -90,7 +90,7 @@ pub fn deserialize_from_file<T: serde::de::DeserializeOwned, P: AsRef<Path>>(
 pub fn serialize_to_file<T: serde::Serialize, P: AsRef<Path>>(
   value: &T,
   path: P,
-) -> Result<()> {
+) -> CrylResult<()> {
   let path = path.as_ref();
   let format = Format::detect_from_path(path).ok_or_else(|| {
     CrylError::InvalidFormat(format!("Unknown format for {:?}", path))

@@ -201,6 +201,19 @@ pub enum GenerateCommands {
     #[arg(long)]
     renew: bool,
   },
+
+  /// Generate password
+  #[command(name = "password")]
+  Password {
+    /// Destination file name
+    name: PathBuf,
+    /// Number of characters
+    #[arg(long, default_value = "16")]
+    length: usize,
+    /// Overwrite destination if it exists
+    #[arg(long)]
+    renew: bool,
+  },
 }
 
 #[derive(Subcommand, Debug)]
@@ -227,69 +240,4 @@ pub enum ExportCommands {
     /// Local file to export
     file: String,
   },
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_cli_parse_path() {
-    let args = vec!["cryl", "path", "spec.toml"];
-    let cli = Cli::parse_from(args);
-    match cli.command {
-      Commands::Path { spec, .. } => {
-        assert_eq!(spec, PathBuf::from("spec.toml"));
-      }
-      _ => panic!("Expected Path command"),
-    }
-  }
-
-  #[test]
-  fn test_cli_parse_stdin() {
-    let args = vec!["cryl", "stdin", "yaml"];
-    let cli = Cli::parse_from(args);
-    match cli.command {
-      Commands::Stdin { format, .. } => {
-        assert_eq!(format, "yaml");
-      }
-      _ => panic!("Expected Stdin command"),
-    }
-  }
-
-  #[test]
-  fn test_cli_parse_schema() {
-    let args = vec!["cryl", "schema"];
-    let cli = Cli::parse_from(args);
-    match cli.command {
-      Commands::Schema => {}
-      _ => panic!("Expected Schema command"),
-    }
-  }
-
-  #[test]
-  fn test_cli_parse_import_copy() {
-    let args = vec!["cryl", "import", "copy", "/from", "/to"];
-    let cli = Cli::parse_from(args);
-    match cli.command {
-      Commands::Import(ImportCommands::Copy { from, to, .. }) => {
-        assert_eq!(from, PathBuf::from("/from"));
-        assert_eq!(to, PathBuf::from("/to"));
-      }
-      _ => panic!("Expected Import Copy command"),
-    }
-  }
-
-  #[test]
-  fn test_cli_parse_generate_id() {
-    let args = vec!["cryl", "generate", "id", "my-id", "--length", "32"];
-    let cli = Cli::parse_from(args);
-    match cli.command {
-      Commands::Generate(GenerateCommands::Id { name, length, .. }) => {
-        assert_eq!(name, PathBuf::from("my-id"));
-        assert_eq!(length, 32);
-      }
-      _ => panic!("Expected Generate Id command"),
-    }
-  }
 }

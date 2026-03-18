@@ -4,17 +4,23 @@
 #![deny(clippy::todo)]
 #![deny(clippy::unreachable)]
 #![deny(clippy::allow_attributes_without_reason)]
+#![allow(dead_code, reason = "Added for now until migration is done")]
 
+mod cli;
+mod common;
+mod exporters;
+mod generators;
+mod importers;
+mod manifest;
+mod schema;
+
+use crate::common::{deserialize, Format};
+use crate::schema::Specification;
 use clap::Parser;
-use cryl::format::{deserialize, Format};
-use cryl::schema::Specification;
+use cli::{Cli, Commands, ExportCommands, GenerateCommands, ImportCommands};
 use schemars::schema_for;
 use std::io::{self, Read};
 use std::path::Path;
-
-mod cli;
-
-use cli::{Cli, Commands, ExportCommands, GenerateCommands, ImportCommands};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let cli = Cli::parse();
@@ -78,15 +84,13 @@ fn run_import(cmd: ImportCommands) -> Result<(), Box<dyn std::error::Error>> {
       to,
       allow_fail,
     } => {
-      println!(
-        "Import copy: {:?} -> {:?} (allow_fail: {})",
-        from, to, allow_fail
-      );
-      // TODO: Implement copy importer
+      importers::import_copy(&from, &to, allow_fail)?;
     }
     ImportCommands::Vault { path, allow_fail } => {
-      println!("Import vault: {} (allow_fail: {})", path, allow_fail);
-      // TODO: Implement vault importer
+      println!(
+        "Import vault: {} (allow_fail: {}) - not yet implemented",
+        path, allow_fail
+      );
     }
     ImportCommands::VaultFile {
       path,
@@ -94,10 +98,9 @@ fn run_import(cmd: ImportCommands) -> Result<(), Box<dyn std::error::Error>> {
       allow_fail,
     } => {
       println!(
-        "Import vault-file: {}/{} (allow_fail: {})",
+        "Import vault-file: {}/{} (allow_fail: {}) - not yet implemented",
         path, file, allow_fail
       );
-      // TODO: Implement vault-file importer
     }
   }
   Ok(())
@@ -106,7 +109,9 @@ fn run_import(cmd: ImportCommands) -> Result<(), Box<dyn std::error::Error>> {
 fn run_generate(
   cmd: GenerateCommands,
 ) -> Result<(), Box<dyn std::error::Error>> {
-  use cryl::{generate_random_alnum, generate_random_digits, save_atomic};
+  use crate::common::{
+    generate_random_alphanumeric, generate_random_digits, save_atomic,
+  };
 
   match cmd {
     GenerateCommands::Id {
@@ -114,7 +119,7 @@ fn run_generate(
       length,
       renew,
     } => {
-      let id = generate_random_alnum(length as usize)?;
+      let id = generate_random_alphanumeric(length as usize)?;
       save_atomic(&name, id.as_bytes(), renew, false)?;
       println!("Generated id: {:?}", name);
     }
@@ -123,7 +128,7 @@ fn run_generate(
       length,
       renew,
     } => {
-      let key = generate_random_alnum(length as usize)?;
+      let key = generate_random_alphanumeric(length as usize)?;
       save_atomic(&name, key.as_bytes(), renew, false)?;
       println!("Generated key: {:?}", name);
     }
@@ -136,6 +141,15 @@ fn run_generate(
       save_atomic(&name, pin.as_bytes(), renew, false)?;
       println!("Generated pin: {:?}", name);
     }
+    GenerateCommands::Password {
+      name,
+      length,
+      renew,
+    } => {
+      let password = generators::generate_password(length)?;
+      save_atomic(&name, password.as_bytes(), renew, false)?;
+      print!("Generated password: {:?}", name);
+    }
   }
   Ok(())
 }
@@ -143,16 +157,13 @@ fn run_generate(
 fn run_export(cmd: ExportCommands) -> Result<(), Box<dyn std::error::Error>> {
   match cmd {
     ExportCommands::Copy { from, to } => {
-      println!("Export copy: {:?} -> {:?}", from, to);
-      // TODO: Implement copy exporter
+      exporters::export_copy(&from, &to)?;
     }
     ExportCommands::Vault { path } => {
-      println!("Export vault: {}", path);
-      // TODO: Implement vault exporter
+      println!("Export vault: {} - not yet implemented", path);
     }
     ExportCommands::VaultFile { path, file } => {
-      println!("Export vault-file: {}/{}", path, file);
-      // TODO: Implement vault-file exporter
+      println!("Export vault-file: {}/{} - not yet implemented", path, file);
     }
   }
   Ok(())
