@@ -168,6 +168,9 @@ rec {
                       <(cargo run --quiet --bin ${name} -- schema)
                   fi
                 '';
+                test = ''
+                  cargo test
+                '';
               };
 
               scriptPackages = builtins.map (
