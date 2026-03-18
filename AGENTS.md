@@ -32,6 +32,8 @@ src/
   file saving, sandbox mounting) resides in `lib.rs`.
 - **Safety**: No magic shell strings. Every argument is passed as a
   `Vec<String>` to `std::process::Command`.
+- **Rust safety**: check the disallowed directives from `main.rs` - no `unwrap`
+  and `panic!` allowed
 
 ## 4. Testing Requirements
 

@@ -4,6 +4,7 @@
     "README.md",
     "CONTRIBUTING.md",
     "flake.nix",
-    "assets/rumor.nu"
+    "assets/rumor.nu",
+    "src/cryl/main.rs"
   ]
 }
