@@ -6,7 +6,7 @@
 #![deny(clippy::allow_attributes_without_reason)]
 
 use clap::Parser;
-use cryl::format::{deserialize, serialize, Format};
+use cryl::format::{deserialize, Format};
 use cryl::schema::Specification;
 use schemars::schema_for;
 use std::io::{self, Read};
