@@ -5,4 +5,9 @@ language: en
 words:
   - schemars
   - thiserror
-  - mockall
+  - testcontainers
+  - reqwest
+  - yescrypt
+  - keypair
+  - shamir
+  - hostnames

@@ -92,39 +92,24 @@ mod tests {
   use super::*;
   use crate::common::vault_container;
   use base64::Engine;
+  use serial_test::serial;
   use std::{os::unix::fs::PermissionsExt, process::Command};
   use tempfile::TempDir;
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_success() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    // Wait for Vault to be ready
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
-    // Setup Vault
-    Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vfile-success-test").await?;
 
     // Write test secret
     Command::new("vault")
       .args([
         "kv",
         "put",
-        "kv/test-app",
+        "kv/test-app/current",
         "secret.txt=top-secret-value",
         "config.yaml=port: 8080",
       ])
-      .env("VAULT_ADDR", &vault_addr)
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -147,28 +132,14 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_missing_key_allow_fail() -> anyhow::Result<()>
   {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
-    Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vfile-missing-key-test").await?;
 
     // Create secret with different key
     Command::new("vault")
-      .args(["kv", "put", "kv/test-app", "other.txt=value"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "put", "kv/test-app/current", "other.txt=value"])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -184,27 +155,13 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_missing_key_no_allow_fail(
   ) -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let _container = vault_container("vfile-missing-key-err-test").await?;
 
     Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["kv", "put", "kv/test-app", "other.txt=value"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "put", "kv/test-app/current", "other.txt=value"])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -222,23 +179,10 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_missing_path_allow_fail() -> anyhow::Result<()>
   {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
-    Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vfile-missing-path-test").await?;
 
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
@@ -281,27 +225,18 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_nested_path() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
-    Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vfile-nested-test").await?;
 
     // Test with nested path
     Command::new("vault")
-      .args(["kv", "put", "kv/team/project/env", "password=s3cr3t"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args([
+        "kv",
+        "put",
+        "kv/team/project/env/current",
+        "password=s3cr3t",
+      ])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -318,26 +253,12 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_with_trailing_slash() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let _container = vault_container("vfile-trailing-test").await?;
 
     Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["kv", "put", "kv/my-app", "config.yaml=key: value"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "put", "kv/my-app/current", "config.yaml=key: value"])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -354,22 +275,9 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_binary_data() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
-    Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vfile-binary-test").await?;
 
     // Store binary data (Vault encodes as base64 in JSON)
     let binary_data = vec![0x00, 0x01, 0x02, 0xFF];
@@ -377,8 +285,12 @@ mod tests {
       base64::engine::general_purpose::STANDARD.encode(&binary_data);
 
     Command::new("vault")
-      .args(["kv", "put", "kv/binary", &format!("data={}", encoded)])
-      .env("VAULT_ADDR", &vault_addr)
+      .args([
+        "kv",
+        "put",
+        "kv/binary/current",
+        &format!("data={}", encoded),
+      ])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -395,26 +307,12 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_permissions() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let _container = vault_container("vfile-permissions-test").await?;
 
     Command::new("vault")
-      .args(["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(["kv", "put", "kv/permissions", "secret=very-secret"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "put", "kv/permissions/current", "secret=very-secret"])
       .output()?;
 
     let temp_dir = TempDir::new()?;

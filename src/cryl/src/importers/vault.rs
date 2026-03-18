@@ -104,47 +104,36 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
 #[cfg(test)]
 mod tests {
   use crate::common::vault_container;
+  use serial_test::serial;
   use std::process::Command;
   use tempfile::TempDir;
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_with_real_vault() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    // Wait for Vault to be ready
-    std::thread::sleep(std::time::Duration::from_secs(2));
-
-    // Enable KV v2 at path
-    Command::new("vault")
-      .args(&["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(&["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vault-import-test").await?;
 
     // Write test data
     Command::new("vault")
-      .args(&["kv", "put", "kv/my-app", r#"secret.txt="top-secret""#])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "put", "kv/my-app/current", "secret.txt=top-secret"])
       .output()?;
 
     // Now test import_vault using medusa (which uses Vault API)
-    // Medusa would need VAULT_ADDR and VAULT_TOKEN env vars
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
 
     // Since medusa might not be installed, we'll mock with curl for demo
     // In real tests you'd install medusa in container or use vault CLI
     let output = Command::new("vault")
-      .args(&["kv", "get", "-format=json", "kv/my-app"])
-      .env("VAULT_ADDR", &vault_addr)
+      .args(["kv", "get", "-format=json", "kv/my-app/current"])
       .output()?;
+
+    if !output.status.success() {
+      anyhow::bail!(
+        "vault kv get failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+      );
+    }
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"]["secret.txt"], "top-secret");
@@ -153,33 +142,19 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_file_with_real_vault() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    std::thread::sleep(std::time::Duration::from_secs(2));
-
-    Command::new("vault")
-      .args(&["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(&["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vault-file-test").await?;
 
     // Write multiple values
     Command::new("vault")
-      .args(&[
+      .args([
         "kv",
         "put",
         "kv/my-app",
-        r#"secret.txt="top-secret" config.yaml="port: 8080""#,
+        "secret.txt=top-secret",
+        "config.yaml=port: 8080",
       ])
-      .env("VAULT_ADDR", &vault_addr)
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -188,7 +163,6 @@ mod tests {
     // Test importing single file
     let output = Command::new("vault")
       .args(&["kv", "get", "-format=json", "kv/my-app"])
-      .env("VAULT_ADDR", &vault_addr)
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
@@ -201,23 +175,9 @@ mod tests {
   }
 
   #[tokio::test]
+  #[serial]
   async fn test_import_vault_missing_path_allow_fail() -> anyhow::Result<()> {
-    let vault_container = vault_container("test-token").await?;
-
-    let host_port = vault_container.get_host_port_ipv4(8200).await?;
-    let vault_addr = format!("http://127.0.0.1:{}", host_port);
-
-    std::thread::sleep(std::time::Duration::from_secs(2));
-
-    Command::new("vault")
-      .args(&["login", "test-token"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
-
-    Command::new("vault")
-      .args(&["secrets", "enable", "-path=kv", "kv-v2"])
-      .env("VAULT_ADDR", &vault_addr)
-      .output()?;
+    let _container = vault_container("vault-missing-test").await?;
 
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
@@ -226,7 +186,6 @@ mod tests {
     // This should return Ok(()) even though vault returns error
     let output = Command::new("vault")
       .args(&["kv", "get", "-format=json", "kv/nonexistent"])
-      .env("VAULT_ADDR", &vault_addr)
       .output()?;
 
     // Command fails but test passes because we're checking allow_fail behavior
