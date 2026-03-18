@@ -278,3 +278,88 @@ authorityKeyIdentifier = keyid,issuer
 pub fn should_skip_generation(public_path: &Path, renew: bool) -> bool {
   !renew && public_path.exists()
 }
+
+/// Check if a string is a valid IP address (simple check)
+pub fn is_ip_address(s: &str) -> bool {
+  s.parse::<std::net::IpAddr>().is_ok()
+}
+
+/// Parse SANs (Subject Alternative Names) from comma-separated string
+/// Returns (dns_sans, ip_sans)
+pub fn parse_sans(sans: &str) -> (Vec<String>, Vec<String>) {
+  let sans_list: Vec<&str> = sans.split(',').map(str::trim).collect();
+
+  let mut dns_sans = Vec::new();
+  let mut ip_sans = Vec::new();
+
+  for san in sans_list {
+    if san.is_empty() {
+      continue;
+    }
+    if is_ip_address(san) {
+      ip_sans.push(san.to_string());
+    } else {
+      dns_sans.push(san.to_string());
+    }
+  }
+
+  (dns_sans, ip_sans)
+}
+
+/// Build leaf certificate request config
+pub fn build_leaf_request_config(
+  common_name: &str,
+  organization: &str,
+  dns_sans: &[String],
+  ip_sans: &[String],
+  key_usage: &str,
+) -> String {
+  let dns_san_lines: String = dns_sans
+    .iter()
+    .enumerate()
+    .map(|(i, san)| format!("DNS.{} = {}", i + 1, san))
+    .collect::<Vec<_>>()
+    .join("\n");
+
+  let ip_san_lines: String = ip_sans
+    .iter()
+    .enumerate()
+    .map(|(i, ip)| format!("IP.{} = {}", i + 1, ip))
+    .collect::<Vec<_>>()
+    .join("\n");
+
+  format!(
+    r#"[req]
+default_md = sha256
+distinguished_name = dn
+req_extensions = ext
+prompt = no
+
+[dn]
+CN = {}
+O = {}
+
+[sans]
+{}
+{}
+
+[ext]
+keyUsage = {}
+extendedKeyUsage = serverAuth,clientAuth
+subjectAltName = @sans
+subjectKeyIdentifier = hash
+"#,
+    common_name, organization, dns_san_lines, ip_san_lines, key_usage
+  )
+}
+
+/// Build leaf certificate final config
+pub fn build_leaf_final_config(request_config: &str) -> String {
+  format!(
+    r#"{}
+basicConstraints = critical,CA:false
+authorityKeyIdentifier = keyid,issuer
+"#,
+    request_config
+  )
+}
