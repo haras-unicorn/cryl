@@ -15,3 +15,6 @@ words:
   - mkpasswd
   - emojis
   - genkey
+  - genpkey
+  - pkeyopt
+  - paramgen
