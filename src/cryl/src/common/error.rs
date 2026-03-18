@@ -48,6 +48,9 @@ pub enum CrylError {
 
   #[error("Validation failed: {0}")]
   Validation(String),
+
+  #[error("Template error: {0}")]
+  Template(#[from] mustache::Error),
 }
 
 /// Result type alias for cryl operations
