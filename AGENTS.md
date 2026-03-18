@@ -57,3 +57,18 @@ src/
 - Use standard `///` docstrings for all public modules and functions.
 - Avoid inline commentary; rely on descriptive function names (e.g.,
   `execute_openssl_root_ca(...)` instead of `run_openssl_command`).
+
+## 7. Commands
+
+Assume you are already running inside the default nix development shell.
+
+- test: `dev-test`
+- format: `dev-format`
+- lint: `dev-lint`
+
+You can also use `cargo` commands when you need something more specific (ie.
+testing a specific function with `cargo test`).
+
+A lot of tests use `/tmp` for testing but please never try to read test output
+from there - actually never read `/tmp`. You can always just use `println!` for
+debugging.
