@@ -1,7 +1,13 @@
+use std::path::PathBuf;
+
 use crate::common::{CrylError, CrylResult};
 
 /// Generate random password with special characters
-pub fn generate_password(length: usize) -> CrylResult<String> {
+pub fn generate_password(
+  name: &PathBuf,
+  length: usize,
+  _renew: bool,
+) -> CrylResult<()> {
   let mut result = String::new();
   // Include alphanumeric + special characters, excluding confusing ones
   let alphabet: Vec<char> = ('a'..='z')
@@ -37,7 +43,10 @@ pub fn generate_password(length: usize) -> CrylResult<String> {
     }
   }
 
-  Ok(result)
+  // Write to destination
+  std::fs::write(name, result)?;
+
+  Ok(())
 }
 
 #[cfg(test)]

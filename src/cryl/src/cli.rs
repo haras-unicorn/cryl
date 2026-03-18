@@ -444,6 +444,97 @@ pub enum GenerateCommands {
     renew: bool,
   },
 
+  /// TLS Root CA (EC)
+  #[command(name = "tls-root")]
+  TlsRoot {
+    /// Common Name for the Root CA
+    common_name: String,
+    /// Organization name
+    organization: String,
+    /// Path to write OpenSSL config
+    config: PathBuf,
+    /// Path to save private key
+    private: PathBuf,
+    /// Path to save self-signed certificate
+    public: PathBuf,
+    /// Certificate path length constraint (-1 for unlimited)
+    #[arg(long, default_value = "1")]
+    pathlen: i32,
+    /// Certificate validity in days
+    #[arg(long, default_value = "3650")]
+    days: u32,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
+  /// TLS Intermediate CA (EC)
+  #[command(name = "tls-intermediary")]
+  TlsIntermediary {
+    /// Common Name for the Intermediate CA
+    common_name: String,
+    /// Organization name
+    organization: String,
+    /// Path to write merged OpenSSL config (extensions + request)
+    config: PathBuf,
+    /// Path to write request config (will be created)
+    request_config: PathBuf,
+    /// Path to save private key
+    private: PathBuf,
+    /// Path to save CSR
+    request: PathBuf,
+    /// Issuer/CA certificate path
+    ca_public: PathBuf,
+    /// Issuer/CA private key path
+    ca_private: PathBuf,
+    /// Serial number tracking file
+    serial: PathBuf,
+    /// Path to save signed certificate
+    public: PathBuf,
+    /// Certificate path length constraint (-1 for unlimited)
+    #[arg(long, default_value = "0")]
+    pathlen: i32,
+    /// Certificate validity in days
+    #[arg(long, default_value = "3650")]
+    days: u32,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
+  /// TLS Leaf certificate (EC)
+  #[command(name = "tls-leaf")]
+  TlsLeaf {
+    /// Common Name for certificate
+    common_name: String,
+    /// Organization name
+    organization: String,
+    /// Comma-separated Subject Alternative Names
+    sans: String,
+    /// Path to write merged OpenSSL config (extensions + request)
+    config: PathBuf,
+    /// Path to write request config (will be created)
+    request_config: PathBuf,
+    /// Path to save private key
+    private: PathBuf,
+    /// Path to save CSR
+    request: PathBuf,
+    /// Issuer CA certificate path
+    ca_public: PathBuf,
+    /// Issuer CA private key path
+    ca_private: PathBuf,
+    /// Serial number tracking file
+    serial: PathBuf,
+    /// Path to save signed certificate
+    public: PathBuf,
+    /// Certificate validity in days
+    #[arg(long, default_value = "3650")]
+    days: u32,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
   /// Generate OpenSSL DH parameters
   #[command(name = "tls-dhparam")]
   TlsDhparam {

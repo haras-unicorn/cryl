@@ -1,8 +1,8 @@
 use crate::common::{CrylError, CrylResult};
 use std::path::Path;
 
-/// Copy exporter - copies a file from source to destination
-pub fn export_copy(from: &Path, to: &Path) -> CrylResult<()> {
+/// Copy generator - copies a file from source to destination
+pub fn generate_copy(from: &Path, to: &Path, renew: bool) -> CrylResult<()> {
   // Check if source exists
   if !from.exists() {
     return Err(CrylError::Export {
@@ -32,7 +32,7 @@ mod tests {
     let to = temp.path().join("dest");
 
     std::fs::write(&from, "test content").unwrap();
-    export_copy(&from, &to).unwrap();
+    generate_copy(&from, &to, true).unwrap();
 
     assert!(to.exists());
     let content = std::fs::read_to_string(&to).unwrap();
@@ -45,7 +45,7 @@ mod tests {
     let from = temp.path().join("nonexistent");
     let to = temp.path().join("dest");
 
-    let result = export_copy(&from, &to);
+    let result = generate_copy(&from, &to, true);
     assert!(result.is_err());
   }
 }
