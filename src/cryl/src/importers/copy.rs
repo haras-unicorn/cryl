@@ -1,4 +1,4 @@
-use crate::common::{CrylError, CrylResult};
+use crate::common::{save_atomic, CrylError, CrylResult};
 use std::path::Path;
 
 /// Copy importer - copies a file from source to destination
@@ -18,13 +18,7 @@ pub fn import_copy(from: &Path, to: &Path, allow_fail: bool) -> CrylResult<()> {
   let content = std::fs::read(from)?;
 
   // Write to destination
-  std::fs::write(to, content)?;
-
-  // Set restrictive permissions
-  use std::os::unix::fs::PermissionsExt;
-  let mut permissions = std::fs::metadata(to)?.permissions();
-  permissions.set_mode(0o600);
-  std::fs::set_permissions(to, permissions)?;
+  save_atomic(to, content.as_slice(), true, false)?;
 
   Ok(())
 }
