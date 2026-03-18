@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::common::{CrylError, CrylResult};
 
 /// Generate random password with special characters
 pub fn generate_password(
-  name: &PathBuf,
+  name: &Path,
   length: usize,
   _renew: bool,
 ) -> CrylResult<()> {
@@ -51,15 +51,21 @@ pub fn generate_password(
 
 #[cfg(test)]
 mod tests {
+  use tempfile::TempDir;
+
   use super::*;
 
   #[test]
-  fn test_generate_password() {
-    let result = generate_password(16).unwrap();
+  fn test_generate_password() -> anyhow::Result<()> {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("pass");
+    generate_password(&path, 16, true)?;
+    let result = std::fs::read_to_string(path)?;
     assert_eq!(result.len(), 16);
     // Password should contain at least alphanumeric characters
     assert!(result
       .chars()
       .all(|c| c.is_ascii_alphanumeric() || "!@#$%^&*-_+=".contains(c)));
+    Ok(())
   }
 }

@@ -1,4 +1,4 @@
-use crate::common::{CrylError, CrylResult};
+use crate::common::{save_atomic, CrylError, CrylResult};
 use std::path::Path;
 
 /// Copy generator - copies a file from source to destination
@@ -15,7 +15,7 @@ pub fn generate_copy(from: &Path, to: &Path, renew: bool) -> CrylResult<()> {
   let content = std::fs::read(from)?;
 
   // Write to destination
-  std::fs::write(to, content)?;
+  save_atomic(to, content.as_slice(), renew, false)?;
 
   Ok(())
 }
