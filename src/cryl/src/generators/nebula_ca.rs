@@ -23,7 +23,7 @@ pub fn generate_nebula_ca(
   let tmp_private = private.as_os_str().to_string_lossy().to_string() + ".tmp";
 
   // Calculate duration in hours
-  let duration = format!("{}h", days * 24);
+  let duration = format!("{}h", days.saturating_mul(24));
 
   // Run nebula-cert ca to generate the CA
   let output = Command::new("nebula-cert")

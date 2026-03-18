@@ -317,14 +317,14 @@ pub fn build_leaf_request_config(
   let dns_san_lines: String = dns_sans
     .iter()
     .enumerate()
-    .map(|(i, san)| format!("DNS.{} = {}", i + 1, san))
+    .map(|(i, san)| format!("DNS.{} = {}", i.saturating_add(1), san))
     .collect::<Vec<_>>()
     .join("\n");
 
   let ip_san_lines: String = ip_sans
     .iter()
     .enumerate()
-    .map(|(i, ip)| format!("IP.{} = {}", i + 1, ip))
+    .map(|(i, ip)| format!("IP.{} = {}", i.saturating_add(1), ip))
     .collect::<Vec<_>>()
     .join("\n");
 
