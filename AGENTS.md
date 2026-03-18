@@ -71,6 +71,6 @@ Assume you are already running inside the default nix development shell.
 You can also use `cargo` commands when you need something more specific (ie.
 testing a specific function with `cargo test`).
 
-A lot of tests use `/tmp` for testing but please never try to read test output
-from there - actually never read `/tmp`. You can always just use `println!` for
-debugging.
+A lot of tests use `/tmp` for testing but please never try to read, delete or
+modify test output from there - actually never read `/tmp`. You can always just
+use `println!` for debugging.
