@@ -236,6 +236,44 @@ subjectKeyIdentifier = hash
   )
 }
 
+/// Build intermediary CA request config (base config)
+pub fn build_intermediary_request_config(
+  common_name: &str,
+  organization: &str,
+) -> String {
+  format!(
+    r#"[req]
+default_md = sha256
+distinguished_name = dn
+x509_extensions = ext
+prompt = no
+
+[dn]
+CN = {}
+O = {}
+
+[ext]
+keyUsage = critical,keyCertSign,cRLSign
+subjectKeyIdentifier = hash
+"#,
+    common_name, organization
+  )
+}
+
+/// Build intermediary CA final config by appending CA-specific extensions
+pub fn build_intermediary_final_config(
+  request_config: &str,
+  basic_constraints: &str,
+) -> String {
+  format!(
+    r#"{}
+basicConstraints = {}
+authorityKeyIdentifier = keyid,issuer
+"#,
+    request_config, basic_constraints
+  )
+}
+
 /// Check if we should skip generation (files exist and no renew)
 pub fn should_skip_generation(public_path: &Path, renew: bool) -> bool {
   !renew && public_path.exists()
