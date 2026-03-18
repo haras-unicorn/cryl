@@ -1,51 +1,15 @@
 use std::path::Path;
 
-use crate::common::{CrylError, CrylResult};
+use crate::common::{generate_random_alphanumeric, CrylResult};
 
-/// Generate random password with special characters
+/// Generate random alphanumeric password
 pub fn generate_password(
   name: &Path,
   length: usize,
-  _renew: bool,
+  renew: bool,
 ) -> CrylResult<()> {
-  let mut result = String::new();
-  // Include alphanumeric + special characters, excluding confusing ones
-  let alphabet: Vec<char> = ('a'..='z')
-    .chain('A'..='Z')
-    .chain('0'..='9')
-    .chain("!@#$%^&*-_+=".chars())
-    .collect();
-
-  while result.len() < length {
-    let needed = length.saturating_sub(result.len());
-    let batch_size = std::cmp::max(needed.saturating_mul(2), 32);
-
-    let output = std::process::Command::new("openssl")
-      .args(["rand", "-base64", &batch_size.to_string()])
-      .output()?;
-
-    if !output.status.success() {
-      return Err(CrylError::ToolExecution {
-        tool: "openssl".to_string(),
-        exit_code: output.status.code().unwrap_or(-1),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-      });
-    }
-
-    let base64 = String::from_utf8_lossy(&output.stdout);
-    for c in base64.chars() {
-      if result.len() >= length {
-        break;
-      }
-      if alphabet.contains(&c) {
-        result.push(c);
-      }
-    }
-  }
-
-  // Write to destination
-  std::fs::write(name, result)?;
-
+  let password = generate_random_alphanumeric(length)?;
+  crate::common::save_atomic(name, password.as_bytes(), renew, false)?;
   Ok(())
 }
 
@@ -60,12 +24,21 @@ mod tests {
     let temp = TempDir::new().unwrap();
     let path = temp.path().join("pass");
     generate_password(&path, 16, true)?;
-    let result = std::fs::read_to_string(path)?;
+    let result = std::fs::read_to_string(&path)?;
     assert_eq!(result.len(), 16);
-    // Password should contain at least alphanumeric characters
-    assert!(result
-      .chars()
-      .all(|c| c.is_ascii_alphanumeric() || "!@#$%^&*-_+=".contains(c)));
+    // Password should contain only alphanumeric characters
+    assert!(result.chars().all(|c| c.is_ascii_alphanumeric()));
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_password_no_overwrite_without_renew() -> anyhow::Result<()> {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("pass");
+    std::fs::write(&path, "existing")?;
+    generate_password(&path, 16, false)?;
+    let result = std::fs::read_to_string(&path)?;
+    assert_eq!(result, "existing");
     Ok(())
   }
 }
