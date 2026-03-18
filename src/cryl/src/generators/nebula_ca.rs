@@ -18,9 +18,9 @@ pub fn generate_nebula_ca(
   days: u32,
   renew: bool,
 ) -> CrylResult<()> {
-  // Create temp file paths (matching original nushell implementation)
-  let tmp_public = public.with_extension("tmp");
-  let tmp_private = private.with_extension("tmp");
+  // Create temp file paths with .tmp suffix appended (matching original nushell implementation)
+  let tmp_public = public.as_os_str().to_string_lossy().to_string() + ".tmp";
+  let tmp_private = private.as_os_str().to_string_lossy().to_string() + ".tmp";
 
   // Calculate duration in hours
   let duration = format!("{}h", days * 24);
@@ -40,8 +40,8 @@ pub fn generate_nebula_ca(
 
   if !output.status.success() {
     // Clean up temp files on failure
-    let _ = std::fs::remove_file(&tmp_public);
-    let _ = std::fs::remove_file(&tmp_private);
+    let _ = std::fs::remove_file(Path::new(&tmp_public));
+    let _ = std::fs::remove_file(Path::new(&tmp_private));
 
     return Err(CrylError::ToolExecution {
       tool: "nebula-cert ca".to_string(),
@@ -51,23 +51,21 @@ pub fn generate_nebula_ca(
   }
 
   // Read generated certificate files
-  let public_content =
-    read_file_if_exists(&tmp_public)?.ok_or_else(|| CrylError::Generation {
+  let public_content = read_file_if_exists(Path::new(&tmp_public))?
+    .ok_or_else(|| CrylError::Generation {
       generator: "nebula-ca".to_string(),
       message: "Public certificate file not generated".to_string(),
     })?;
 
-  let private_content =
-    read_file_if_exists(&tmp_private)?.ok_or_else(|| {
-      CrylError::Generation {
-        generator: "nebula-ca".to_string(),
-        message: "Private key file not generated".to_string(),
-      }
+  let private_content = read_file_if_exists(Path::new(&tmp_private))?
+    .ok_or_else(|| CrylError::Generation {
+      generator: "nebula-ca".to_string(),
+      message: "Private key file not generated".to_string(),
     })?;
 
   // Clean up temp files
-  let _ = std::fs::remove_file(&tmp_public);
-  let _ = std::fs::remove_file(&tmp_private);
+  let _ = std::fs::remove_file(Path::new(&tmp_public));
+  let _ = std::fs::remove_file(Path::new(&tmp_private));
 
   // Save public certificate with public permissions (644)
   save_atomic(public, public_content.as_bytes(), renew, true)?;
