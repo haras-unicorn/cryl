@@ -18,3 +18,7 @@ words:
   - genpkey
   - pkeyopt
   - paramgen
+  - acreateserial
+  - extfile
+  - keyid
+  - diffie
