@@ -13,12 +13,14 @@ pub enum Format {
 
 impl Format {
   /// Parse format from string
-  pub fn parse(s: &str) -> Option<Self> {
+  pub fn parse(s: &str) -> CrylResult<Self> {
     match s.to_lowercase().as_str() {
-      "json" => Some(Self::Json),
-      "yaml" | "yml" => Some(Self::Yaml),
-      "toml" => Some(Self::Toml),
-      _ => None,
+      "json" => Ok(Self::Json),
+      "yaml" | "yml" => Ok(Self::Yaml),
+      "toml" => Ok(Self::Toml),
+      _ => Err(CrylError::InvalidFormat(format!(
+        "Failed parsing format: {s}"
+      ))),
     }
   }
 
@@ -32,9 +34,17 @@ impl Format {
   }
 
   /// Detect format from file extension
-  pub fn detect_from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
+  pub fn detect_from_path<P: AsRef<Path>>(path: P) -> CrylResult<Self> {
     let path = path.as_ref();
-    let ext = path.extension()?.to_str()?;
+    let ext =
+      path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .ok_or_else(|| {
+          CrylError::InvalidFormat(format!(
+            "Failed reading extension of {path:?}"
+          ))
+        })?;
     Self::parse(ext)
   }
 }
@@ -78,9 +88,7 @@ pub fn deserialize_from_file<T: serde::de::DeserializeOwned, P: AsRef<Path>>(
   path: P,
 ) -> CrylResult<T> {
   let path = path.as_ref();
-  let format = Format::detect_from_path(path).ok_or_else(|| {
-    CrylError::InvalidFormat(format!("Unknown format for {:?}", path))
-  })?;
+  let format = Format::detect_from_path(path)?;
 
   let content = std::fs::read_to_string(path)?;
   deserialize(&content, format)
@@ -92,9 +100,7 @@ pub fn serialize_to_file<T: serde::Serialize, P: AsRef<Path>>(
   path: P,
 ) -> CrylResult<()> {
   let path = path.as_ref();
-  let format = Format::detect_from_path(path).ok_or_else(|| {
-    CrylError::InvalidFormat(format!("Unknown format for {:?}", path))
-  })?;
+  let format = Format::detect_from_path(path)?;
 
   let content = serialize(value, format)?;
   std::fs::write(path, content)?;
@@ -114,12 +120,13 @@ mod tests {
 
   #[test]
   fn test_format_parse() {
-    assert_eq!(Format::parse("json"), Some(Format::Json));
-    assert_eq!(Format::parse("JSON"), Some(Format::Json));
-    assert_eq!(Format::parse("yaml"), Some(Format::Yaml));
-    assert_eq!(Format::parse("yml"), Some(Format::Yaml));
-    assert_eq!(Format::parse("toml"), Some(Format::Toml));
-    assert_eq!(Format::parse("unknown"), None);
+    assert!(matches!(Format::parse("json"), Ok(Format::Json)));
+
+    assert!(matches!(Format::parse("JSON"), Ok(Format::Json)));
+    assert!(matches!(Format::parse("yaml"), Ok(Format::Yaml)));
+    assert!(matches!(Format::parse("yml"), Ok(Format::Yaml)));
+    assert!(matches!(Format::parse("toml"), Ok(Format::Toml)));
+    assert!(matches!(Format::parse("unknown"), Err(_)));
   }
 
   #[test]

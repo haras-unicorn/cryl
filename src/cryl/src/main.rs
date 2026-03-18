@@ -63,9 +63,8 @@ fn run_from_stdin(
   format: &str,
   _common: &cli::CommonArgs,
   _sandbox: &cli::SandboxArgs,
-) -> Result<(), Box<dyn std::error::Error>> {
-  let format = Format::parse(format)
-    .ok_or_else(|| format!("Unknown format: {}", format))?;
+) -> CrylResult<()> {
+  let format = Format::parse(format)?;
 
   let mut content = String::new();
   io::stdin().read_to_string(&mut content)?;
