@@ -11,3 +11,7 @@ words:
   - keypair
   - shamir
   - hostnames
+  - keygen
+  - mkpasswd
+  - emojis
+  - genkey

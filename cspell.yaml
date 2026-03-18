@@ -21,3 +21,4 @@ ignoreWords:
   - pathlen
   - cachix
   - makeself
+  - println
