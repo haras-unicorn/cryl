@@ -1,9 +1,13 @@
 use std::path::Path;
-use std::process::Command;
 
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{
+  build_basic_constraints, build_root_config, generate_private_key,
+  generate_self_signed_cert, save_private_key, save_public_file,
+  should_skip_generation, CrylResult, TlsAlgorithm,
+};
 
-/// Generate a TLS Root CA (private key + self-signed certificate)
+/// Generate a TLS Root CA (private key + self-signed certificate) using EC
+/// algorithm
 ///
 /// # Arguments
 /// * `common_name` - Common Name for the Root CA (e.g., "My Root CA")
@@ -25,87 +29,25 @@ pub fn generate_tls_root(
   renew: bool,
 ) -> CrylResult<()> {
   // If public cert exists and we're not renewing, skip everything
-  if !renew && public.exists() {
+  if should_skip_generation(public, renew) {
     return Ok(());
   }
 
   // Build basicConstraints based on pathlen
-  let basic_constraints = if pathlen < 0 {
-    "critical,CA:true".to_string()
-  } else {
-    format!("critical,CA:true,pathlen:{}", pathlen)
-  };
+  let basic_constraints = build_basic_constraints(pathlen);
 
-  // Create OpenSSL config
-  let config_content = format!(
-    r#"[req]
-default_md = sha256
-distinguished_name = dn
-x509_extensions = ext
-prompt = no
+  // Create and save OpenSSL config
+  let config_content =
+    build_root_config(common_name, organization, &basic_constraints);
+  save_public_file(config, &config_content, renew)?;
 
-[dn]
-CN = {}
-O = {}
-
-[ext]
-basicConstraints = {}
-keyUsage = critical,keyCertSign,cRLSign
-subjectKeyIdentifier = hash
-"#,
-    common_name, organization, basic_constraints
-  );
-
-  // Save config file with public permissions
-  save_atomic(config, config_content.as_bytes(), renew, true)?;
-
-  // Generate private key using EC algorithm with prime256v1 curve
-  let private_output = Command::new("openssl")
-    .arg("genpkey")
-    .arg("-algorithm")
-    .arg("EC")
-    .arg("-pkeyopt")
-    .arg("ec_paramgen_curve:prime256v1")
-    .arg("-quiet")
-    .output()?;
-
-  if !private_output.status.success() {
-    return Err(CrylError::ToolExecution {
-      tool: "openssl genpkey".to_string(),
-      exit_code: private_output.status.code().unwrap_or(-1),
-      stderr: String::from_utf8_lossy(&private_output.stderr).to_string(),
-    });
-  }
-
-  let private_content = String::from_utf8_lossy(&private_output.stdout);
-
-  // Save private key with private permissions (600)
-  save_atomic(private, private_content.as_bytes(), renew, false)?;
+  // Generate private key using EC algorithm
+  let private_content = generate_private_key(TlsAlgorithm::Ec)?;
+  save_private_key(private, &private_content, renew)?;
 
   // Generate self-signed certificate using the config
-  let cert_output = Command::new("openssl")
-    .arg("req")
-    .arg("-x509")
-    .arg("-key")
-    .arg(private)
-    .arg("-config")
-    .arg(config)
-    .arg("-days")
-    .arg(days.to_string())
-    .output()?;
-
-  if !cert_output.status.success() {
-    return Err(CrylError::ToolExecution {
-      tool: "openssl req -x509".to_string(),
-      exit_code: cert_output.status.code().unwrap_or(-1),
-      stderr: String::from_utf8_lossy(&cert_output.stderr).to_string(),
-    });
-  }
-
-  let cert_content = String::from_utf8_lossy(&cert_output.stdout);
-
-  // Save certificate with public permissions (644)
-  save_atomic(public, cert_content.as_bytes(), renew, true)?;
+  let cert_content = generate_self_signed_cert(private, config, days)?;
+  save_public_file(public, &cert_content, renew)?;
 
   Ok(())
 }
