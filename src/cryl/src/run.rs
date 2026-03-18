@@ -66,15 +66,24 @@ pub fn run_generate(cmd: GenerateCommands) -> CrylResult<()> {
     GenerateCommands::Text { name, text, renew } => {
       generators::generate_text(&name, &text, renew)
     }
-    GenerateCommands::Data {
+    GenerateCommands::Json {
       name,
       in_format,
       data,
-      out_format,
       renew,
-    } => {
-      generators::generate_data(&name, &in_format, &data, &out_format, renew)
-    }
+    } => generators::generate_json(&name, &in_format, &data, renew),
+    GenerateCommands::Yaml {
+      name,
+      in_format,
+      data,
+      renew,
+    } => generators::generate_yaml(&name, &in_format, &data, renew),
+    GenerateCommands::Toml {
+      name,
+      in_format,
+      data,
+      renew,
+    } => generators::generate_toml(&name, &in_format, &data, renew),
     GenerateCommands::Id {
       name,
       length,

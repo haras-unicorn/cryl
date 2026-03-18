@@ -237,16 +237,40 @@ pub enum GenerateCommands {
     renew: bool,
   },
 
-  /// Convert data between formats
-  Data {
+  /// Convert data to JSON
+  Json {
     /// Destination file name
     name: PathBuf,
     /// Input format
     in_format: String,
     /// Source data path
     data: PathBuf,
-    /// Output format
-    out_format: String,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
+  /// Convert data to YAML
+  Yaml {
+    /// Destination file name
+    name: PathBuf,
+    /// Input format
+    in_format: String,
+    /// Source data path
+    data: PathBuf,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
+  /// Convert data to TOML
+  Toml {
+    /// Destination file name
+    name: PathBuf,
+    /// Input format
+    in_format: String,
+    /// Source data path
+    data: PathBuf,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
