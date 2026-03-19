@@ -334,7 +334,7 @@
             },
             "exporter": {
               "type": "string",
-              "const": "vault_file"
+              "const": "vault-file"
             }
           },
           "required": [
@@ -951,7 +951,7 @@
             },
             "importer": {
               "type": "string",
-              "const": "vault_file"
+              "const": "vault-file"
             }
           },
           "required": [
