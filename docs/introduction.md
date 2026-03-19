@@ -63,11 +63,29 @@ When not in a sandbox, cryl will take these arguments into account:
   done with work. You can disable this behavior by passing this argument.
 
 cryl also allows you to invoke all of the importers, generators and exporters on
-their own which will be described in the following chapters. Please note,
-however, that while cryl does some have safety precautions when using it in the
-main ways as described here, invoking the importers, generators and exporters by
-themselves is done with minimal safety precautions which is limited to setting
-file permissions on generated files.
+their own. Please note, however, that while cryl does have safety precautions
+when using it in the main ways as described here, invoking the importers,
+generators and exporters by themselves is done with minimal safety precautions
+which is limited to setting file permissions on generated files.
+
+### Additional Commands
+
+In addition to the main commands above, cryl provides several other commands:
+
+- `cryl schema`: Print the JSON schema used to validate specifications to stdout.
+  This can be useful for IDE integration or validation tools.
+
+- `cryl import <importer> [args]`: Run a specific importer directly. This allows
+  you to test any importer (copy, vault, vault-file) without a full specification.
+  See the [Importers](importers.md) chapter for available importers and their arguments.
+
+- `cryl generate <generator> [args]`: Run a specific generator directly. This allows
+  you to test any generator (id, key, password, tls-root, etc.) without a full specification.
+  See the [Generators](generators.md) chapter for available generators and their arguments.
+
+- `cryl export <exporter> [args]`: Run a specific exporter directly. This allows
+  you to test any exporter (copy, vault, vault-file) without a full specification.
+  See the [Exporters](exporters.md) chapter for available exporters and their arguments.
 
 ## Specification
 
