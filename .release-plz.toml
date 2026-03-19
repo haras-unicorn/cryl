@@ -1,0 +1,9 @@
+[workspace]
+changelog_path = "CHANGELOG.md"
+
+[[package]]
+name = "cryl"
+path = "src/cryl"
+publish = true
+git_tag_name = "cryl-v{{ version }}"
+git_release_name = "cryl v{{ version }}"

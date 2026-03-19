@@ -170,6 +170,8 @@ rec {
                   fd
                   delta
                   cachix
+
+                  release-plz
                 ]
                 ++ buildInputs;
 
@@ -208,6 +210,10 @@ rec {
                       --quiet \
                       $(fd '.*.md' .)
                   fi
+
+                  taplo lint \
+                    --schema "https://raw.githubusercontent.com/release-plz/release-plz/refs/tags/release-plz-v0.3.148/.schema/latest.json" \
+                    .release-plz.toml
 
                   if [[ -n "''${NIX_BUILD_TOP:-}" ]]; then
                     delta \
