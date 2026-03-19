@@ -2,9 +2,6 @@ name: check
 on:
   merge_group: {}
   pull_request: {}
-  push:
-    branches:
-      - main
 jobs:
   check:
     runs-on: ubuntu-latest
