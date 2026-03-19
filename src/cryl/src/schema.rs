@@ -16,7 +16,7 @@ pub struct Specification {
 
 /// Import operation - brings existing data into the working directory.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
-#[serde(tag = "importer", rename_all = "snake_case")]
+#[serde(tag = "importer", rename_all = "kebab-case")]
 pub enum Import {
   /// Import all files from a Vault KV path.
   Vault { arguments: VaultImportArgs },
@@ -97,7 +97,7 @@ pub enum Generation {
 
 /// Export operation - pushes generated secrets to external systems.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
-#[serde(tag = "exporter", rename_all = "snake_case")]
+#[serde(tag = "exporter", rename_all = "kebab-case")]
 pub enum Export {
   /// Export all files in current directory to Vault KV path.
   Vault { arguments: VaultExportArgs },
