@@ -170,6 +170,8 @@ rec {
                   fd
                   delta
                   cachix
+
+                  release-plz
                 ]
                 ++ buildInputs;
 
@@ -207,6 +209,12 @@ rec {
                       --config .markdown-link-check.json \
                       --quiet \
                       $(fd '.*.md' .)
+                  fi
+
+                  if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
+                    taplo lint \
+                      --schema "https://raw.githubusercontent.com/release-plz/release-plz/refs/tags/release-plz-v0.3.148/.schema/latest.json" \
+                      .release-plz.toml
                   fi
 
                   if [[ -n "''${NIX_BUILD_TOP:-}" ]]; then
