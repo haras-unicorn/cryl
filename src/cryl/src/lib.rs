@@ -18,8 +18,10 @@
 
 mod common;
 mod exporters;
+mod generators;
 mod importers;
 
 pub use common::*;
 pub use exporters::*;
+pub use generators::*;
 pub use importers::*;
