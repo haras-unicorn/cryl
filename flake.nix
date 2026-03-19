@@ -211,9 +211,11 @@ rec {
                       $(fd '.*.md' .)
                   fi
 
-                  taplo lint \
-                    --schema "https://raw.githubusercontent.com/release-plz/release-plz/refs/tags/release-plz-v0.3.148/.schema/latest.json" \
-                    .release-plz.toml
+                  if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
+                    taplo lint \
+                      --schema "https://raw.githubusercontent.com/release-plz/release-plz/refs/tags/release-plz-v0.3.148/.schema/latest.json" \
+                      .release-plz.toml
+                  fi
 
                   if [[ -n "''${NIX_BUILD_TOP:-}" ]]; then
                     delta \
