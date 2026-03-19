@@ -167,7 +167,7 @@ async fn test_vault_file_export() {
 imports = []
 
 [[exports]]
-exporter = "vault_file"
+exporter = "vault-file"
 arguments.path = "kv/single-secret"
 arguments.file = "master.key"
 
@@ -358,7 +358,7 @@ async fn test_vault_file_export_json() {
 imports = []
 
 [[exports]]
-exporter = "vault_file"
+exporter = "vault-file"
 arguments.path = "kv/json-export"
 arguments.file = "data.json"
 
