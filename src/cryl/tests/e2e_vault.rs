@@ -292,7 +292,7 @@ arguments.value = { timeout = 30, retries = 3 }
 #[serial]
 async fn test_vault_export_dry_run() {
   let _container: ContainerAsync<GenericImage> =
-    vault_container("cryl-vault-dryrun-e2e").await.unwrap();
+    vault_container("cryl-vault-dry-run-e2e").await.unwrap();
 
   let temp_dir = TempDir::new().unwrap();
   let spec_path = temp_dir.path().join("spec.toml");
@@ -305,7 +305,7 @@ imports = []
 
 [[exports]]
 exporter = "vault"
-arguments.path = "kv/dryrun-app"
+arguments.path = "kv/dry-run-app"
 
 [[generations]]
 generator = "text"
@@ -332,7 +332,7 @@ arguments.text = "should-not-be-exported"
 
   // But should NOT be exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/dryrun-app/current"])
+    .args(["kv", "get", "-format=json", "kv/dry-run-app/current"])
     .output()
     .expect("Failed to get vault data");
 

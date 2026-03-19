@@ -22,3 +22,8 @@ words:
   - extfile
   - keyid
   - diffie
+  - chrono
+  - clearenv
+  - tmpfs
+  - chdir
+  - libargon
