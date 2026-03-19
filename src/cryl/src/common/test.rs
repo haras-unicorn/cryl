@@ -3,7 +3,7 @@ use std::{
   time::{Duration, Instant},
 };
 use testcontainers::{
-  runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt,
+  ContainerAsync, GenericImage, ImageExt, runners::AsyncRunner,
 };
 use tokio::net::TcpStream;
 
@@ -30,7 +30,7 @@ pub async fn vault_container(
         continue;
       }
       Err(e) => {
-        return Err(anyhow::anyhow!("Vault port never became reachable: {}", e))
+        return Err(anyhow::anyhow!("Vault port never became reachable: {}", e));
       }
     }
   }
@@ -55,9 +55,12 @@ pub async fn vault_container(
     }
   }
 
-  std::env::set_var("VAULT_ADDR", &vault_addr);
-  std::env::set_var("VAULT_TOKEN", root_token);
-  std::env::set_var("VAULT_SKIP_VERIFY", "true");
+  #[allow(unsafe_code, reason = "Tested in serial tests")]
+  unsafe {
+    std::env::set_var("VAULT_ADDR", &vault_addr);
+    std::env::set_var("VAULT_TOKEN", root_token);
+    std::env::set_var("VAULT_SKIP_VERIFY", "true");
+  }
 
   Command::new("vault")
     .args(["secrets", "enable", "-path=kv", "kv-v2"])

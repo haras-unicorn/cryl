@@ -9,6 +9,12 @@
 #![deny(clippy::todo)]
 #![deny(clippy::unreachable)]
 #![deny(clippy::allow_attributes_without_reason)]
+#![allow(dead_code, reason = "Added for now until migration is done")]
+#![allow(unused, reason = "Added for now until migration is done")]
+#![allow(
+  clippy::too_many_arguments,
+  reason = "Added for now until migration is done"
+)]
 
 mod common;
 mod exporters;

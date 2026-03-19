@@ -13,6 +13,7 @@
 
 mod cli;
 mod common;
+mod dispatch;
 mod exporters;
 mod generators;
 mod importers;
@@ -23,6 +24,7 @@ mod schema;
 use clap::Parser;
 use cli::*;
 use common::CrylResult;
+use dispatch::*;
 use run::*;
 
 fn main() -> CrylResult<()> {
@@ -40,8 +42,8 @@ fn main() -> CrylResult<()> {
       common,
       sandbox,
     } => run_from_stdin(&format, &common, &sandbox),
-    Commands::Import(import_cmd) => run_import_command(import_cmd),
-    Commands::Generate(gen_cmd) => run_generate_command(gen_cmd),
-    Commands::Export(export_cmd) => run_export_command(export_cmd),
+    Commands::Import(import_cmd) => run_import_command(&import_cmd),
+    Commands::Generate(gen_cmd) => run_generate_command(&gen_cmd),
+    Commands::Export(export_cmd) => run_export_command(&export_cmd),
   }
 }
