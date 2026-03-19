@@ -202,19 +202,6 @@ pub enum GenerateCommands {
     renew: bool,
   },
 
-  /// Generate password
-  #[command(name = "password")]
-  Password {
-    /// Destination file name
-    name: PathBuf,
-    /// Number of characters
-    #[arg(long, default_value = "16")]
-    length: usize,
-    /// Overwrite destination if it exists
-    #[arg(long)]
-    renew: bool,
-  },
-
   /// Copy a file
   Copy {
     /// Source path
@@ -277,8 +264,8 @@ pub enum GenerateCommands {
   },
 
   /// Generate password (argon2)
-  #[command(name = "password-argon2")]
-  PasswordArgon2 {
+  #[command(name = "password")]
+  Password {
     /// Path for public/hashed password
     public: PathBuf,
     /// Path for private/plain password

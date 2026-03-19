@@ -40,8 +40,8 @@ fn main() -> CrylResult<()> {
       common,
       sandbox,
     } => run_from_stdin(&format, &common, &sandbox),
-    Commands::Import(import_cmd) => run_import(import_cmd),
-    Commands::Generate(gen_cmd) => run_generate(gen_cmd),
-    Commands::Export(export_cmd) => run_export(export_cmd),
+    Commands::Import(import_cmd) => run_import_command(import_cmd),
+    Commands::Generate(gen_cmd) => run_generate_command(gen_cmd),
+    Commands::Export(export_cmd) => run_export_command(export_cmd),
   }
 }

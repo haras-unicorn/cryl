@@ -1,6 +1,6 @@
-use crate::cli::{self, *};
+use crate::cli::*;
 use crate::common::{deserialize, CrylResult, Format};
-use crate::schema::Specification;
+use crate::schema::*;
 use crate::{exporters, generators, importers};
 use clap::Parser;
 use schemars::schema_for;
@@ -15,8 +15,8 @@ pub fn print_schema() -> CrylResult<()> {
 
 pub fn run_from_path(
   _spec_path: &Path,
-  _common: &cli::CommonArgs,
-  _sandbox: &cli::SandboxArgs,
+  _common: &CommonArgs,
+  _sandbox: &SandboxArgs,
 ) -> CrylResult<()> {
   // TODO: Implement full execution pipeline
   println!("TODO: Run from path");
@@ -25,8 +25,8 @@ pub fn run_from_path(
 
 pub fn run_from_stdin(
   format: &str,
-  _common: &cli::CommonArgs,
-  _sandbox: &cli::SandboxArgs,
+  _common: &CommonArgs,
+  _sandbox: &SandboxArgs,
 ) -> CrylResult<()> {
   let format = Format::parse(format)?;
 
@@ -40,7 +40,531 @@ pub fn run_from_stdin(
   Ok(())
 }
 
-pub fn run_import(cmd: ImportCommands) -> CrylResult<()> {
+pub fn run_import_spec(cmd: Import) -> CrylResult<()> {
+  match cmd {
+    Import::Copy {
+      arguments:
+        CopyImportArgs {
+          from,
+          to,
+          allow_fail,
+        },
+    } => importers::import_copy(
+      Path::new(&from),
+      Path::new(&to),
+      allow_fail.unwrap_or(false),
+    ),
+    Import::Vault {
+      arguments: VaultImportArgs { path, allow_fail },
+    } => importers::import_vault(&path, allow_fail.unwrap_or(false)),
+    Import::VaultFile {
+      arguments:
+        VaultFileImportArgs {
+          path,
+          file,
+          allow_fail,
+        },
+    } => {
+      importers::import_vault_file(&path, &file, allow_fail.unwrap_or(false))
+    }
+  }
+}
+
+pub fn run_generate_spec(cmd: Generation) -> CrylResult<()> {
+  match cmd {
+    Generation::Copy {
+      arguments: CopyGenArgs { from, to, renew },
+    } => generators::generate_copy(
+      Path::new(&from),
+      Path::new(&to),
+      renew.unwrap_or(false),
+    ),
+    Generation::Text {
+      arguments: TextGenArgs { name, text, renew },
+    } => {
+      generators::generate_text(Path::new(&name), &text, renew.unwrap_or(false))
+    }
+    Generation::Json {
+      arguments: DataGenArgs { .. },
+    } => {
+      // TODO: Schema provides value directly but generator expects file path
+      // Need to serialize value to temp file first
+      Ok(())
+    }
+    Generation::Yaml {
+      arguments: DataGenArgs { .. },
+    } => {
+      // TODO: Schema provides value directly but generator expects file path
+      // Need to serialize value to temp file first
+      Ok(())
+    }
+    Generation::Toml {
+      arguments: DataGenArgs { .. },
+    } => {
+      // TODO: Schema provides value directly but generator expects file path
+      // Need to serialize value to temp file first
+      Ok(())
+    }
+    Generation::Id {
+      arguments:
+        IdGenArgs {
+          name,
+          length,
+          renew,
+        },
+    } => generators::generate_id(
+      Path::new(&name),
+      length.unwrap_or(16),
+      renew.unwrap_or(false),
+    ),
+    Generation::Key {
+      arguments:
+        IdGenArgs {
+          name,
+          length,
+          renew,
+        },
+    } => generators::generate_key(
+      Path::new(&name),
+      length.unwrap_or(32),
+      renew.unwrap_or(false),
+    ),
+    Generation::Pin {
+      arguments:
+        PinGenArgs {
+          name,
+          length,
+          renew,
+        },
+    } => generators::generate_pin(
+      Path::new(&name),
+      length.unwrap_or(8),
+      renew.unwrap_or(false),
+    ),
+    Generation::Password {
+      arguments:
+        PasswordGenArgs {
+          public,
+          private,
+          length,
+          renew,
+        },
+    } => generators::generate_password(
+      Path::new(&public),
+      Path::new(&private),
+      length.unwrap_or(16) as usize,
+      renew.unwrap_or(false),
+    ),
+    Generation::PasswordCrypt3 {
+      arguments:
+        PasswordGenArgs {
+          public,
+          private,
+          length,
+          renew,
+        },
+    } => generators::generate_password_crypt3(
+      Path::new(&public),
+      Path::new(&private),
+      length.unwrap_or(16) as usize,
+      renew.unwrap_or(false),
+    ),
+    Generation::AgeKey {
+      arguments:
+        AgeKeyArgs {
+          public,
+          private,
+          renew,
+        },
+    } => generators::generate_age_key(
+      Path::new(&public),
+      Path::new(&private),
+      renew.unwrap_or(false),
+    ),
+    Generation::SshKey {
+      arguments:
+        SshKeyArgs {
+          name,
+          public,
+          private,
+          renew,
+        },
+    } => generators::generate_ssh_key(
+      &name,
+      Path::new(&public),
+      Path::new(&private),
+      None,
+      renew.unwrap_or(false),
+    ),
+    Generation::WireguardKey {
+      arguments:
+        WireguardKeyArgs {
+          public,
+          private,
+          renew,
+        },
+    } => generators::generate_wireguard_key(
+      Path::new(&public),
+      Path::new(&private),
+      renew.unwrap_or(false),
+    ),
+    Generation::KeySplit {
+      arguments:
+        KeySplitArgs {
+          key,
+          prefix,
+          threshold,
+          shares,
+          renew,
+        },
+    } => generators::generate_key_split(
+      Path::new(&key),
+      &prefix,
+      threshold as usize,
+      shares as usize,
+      renew.unwrap_or(false),
+    ),
+    Generation::KeyCombine {
+      arguments:
+        KeyCombineArgs {
+          shares,
+          key,
+          threshold,
+          renew,
+        },
+    } => generators::generate_key_combine(
+      &shares.join(","),
+      Path::new(&key),
+      threshold as usize,
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsRoot {
+      arguments:
+        TlsRootArgs {
+          common_name,
+          organization,
+          config,
+          private,
+          public,
+          pathlen,
+          days,
+          renew,
+        },
+    } => generators::generate_tls_root(
+      &common_name,
+      &organization,
+      Path::new(&config),
+      Path::new(&private),
+      Path::new(&public),
+      pathlen.unwrap_or(1),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsIntermediary {
+      arguments:
+        TlsIntermediaryArgs {
+          root:
+            TlsRootArgs {
+              common_name,
+              organization,
+              config,
+              private,
+              public,
+              pathlen,
+              days,
+              renew,
+            },
+          ca_public,
+          ca_private,
+          request,
+          request_config,
+          serial,
+        },
+    } => generators::generate_tls_intermediary(
+      &common_name,
+      &organization,
+      Path::new(&config),
+      Path::new(&request_config),
+      Path::new(&private),
+      Path::new(&request),
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&serial),
+      Path::new(&public),
+      pathlen.unwrap_or(0),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsLeaf {
+      arguments:
+        TlsLeafArgs {
+          inter:
+            TlsIntermediaryArgs {
+              root:
+                TlsRootArgs {
+                  common_name,
+                  organization,
+                  config,
+                  private,
+                  public,
+                  pathlen,
+                  days,
+                  renew,
+                },
+              ca_public,
+              ca_private,
+              request,
+              request_config,
+              serial,
+            },
+          sans,
+        },
+    } => generators::generate_tls_leaf(
+      &common_name,
+      &organization,
+      &sans.join(","),
+      Path::new(&config),
+      Path::new(&request_config),
+      Path::new(&private),
+      Path::new(&request),
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&serial),
+      Path::new(&public),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsRsaRoot {
+      arguments:
+        TlsRootArgs {
+          common_name,
+          organization,
+          config,
+          private,
+          public,
+          pathlen,
+          days,
+          renew,
+        },
+    } => generators::generate_tls_rsa_root(
+      &common_name,
+      &organization,
+      Path::new(&config),
+      Path::new(&private),
+      Path::new(&public),
+      pathlen.unwrap_or(1),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsRsaIntermediary {
+      arguments:
+        TlsIntermediaryArgs {
+          root:
+            TlsRootArgs {
+              common_name,
+              organization,
+              config,
+              private,
+              public,
+              pathlen,
+              days,
+              renew,
+            },
+          ca_public,
+          ca_private,
+          request,
+          request_config,
+          serial,
+        },
+    } => generators::generate_tls_rsa_intermediary(
+      &common_name,
+      &organization,
+      Path::new(&config),
+      Path::new(&request_config),
+      Path::new(&private),
+      Path::new(&request),
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&serial),
+      Path::new(&public),
+      pathlen.unwrap_or(0),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsRsaLeaf {
+      arguments:
+        TlsLeafArgs {
+          inter:
+            TlsIntermediaryArgs {
+              root:
+                TlsRootArgs {
+                  common_name,
+                  organization,
+                  config,
+                  private,
+                  public,
+                  pathlen,
+                  days,
+                  renew,
+                },
+              ca_public,
+              ca_private,
+              request,
+              request_config,
+              serial,
+            },
+          sans,
+        },
+    } => generators::generate_tls_rsa_leaf(
+      &common_name,
+      &organization,
+      &sans.join(","),
+      Path::new(&config),
+      Path::new(&request_config),
+      Path::new(&private),
+      Path::new(&request),
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&serial),
+      Path::new(&public),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::TlsDhparam {
+      arguments: DhparamArgs { name, renew },
+    } => {
+      generators::generate_tls_dhparam(Path::new(&name), renew.unwrap_or(false))
+    }
+    Generation::NebulaCa {
+      arguments:
+        NebulaCaArgs {
+          name,
+          public,
+          private,
+          days,
+          renew,
+        },
+    } => generators::generate_nebula_ca(
+      &name,
+      Path::new(&public),
+      Path::new(&private),
+      days.unwrap_or(3650),
+      renew.unwrap_or(false),
+    ),
+    Generation::NebulaCert {
+      arguments:
+        NebulaCertArgs {
+          ca_public,
+          ca_private,
+          name,
+          ip,
+          public,
+          private,
+          renew,
+        },
+    } => generators::generate_nebula_cert(
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      &name,
+      &ip,
+      Path::new(&public),
+      Path::new(&private),
+      renew.unwrap_or(false),
+    ),
+    Generation::CockroachCa {
+      arguments:
+        CockroachCaArgs {
+          public,
+          private,
+          renew,
+        },
+    } => generators::generate_cockroach_ca(
+      Path::new(&public),
+      Path::new(&private),
+      renew.unwrap_or(false),
+    ),
+    Generation::CockroachNodeCert {
+      arguments:
+        CockroachNodeCertArgs {
+          ca_public,
+          ca_private,
+          public,
+          private,
+          hosts,
+          renew,
+        },
+    } => generators::generate_cockroach_node_cert(
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&public),
+      Path::new(&private),
+      &hosts.join(","),
+      renew.unwrap_or(false),
+    ),
+    Generation::CockroachClientCert {
+      arguments:
+        CockroachClientCertArgs {
+          ca_public,
+          ca_private,
+          public,
+          private,
+          user,
+          renew,
+        },
+    } => generators::generate_cockroach_client_cert(
+      Path::new(&ca_public),
+      Path::new(&ca_private),
+      Path::new(&public),
+      Path::new(&private),
+      &user,
+      renew.unwrap_or(false),
+    ),
+    Generation::Env {
+      arguments: EnvArgs { .. },
+    } => {
+      // TODO: Schema provides HashMap but generator expects file path
+      // Need to serialize variables to temp file first
+      Ok(())
+    }
+    Generation::Moustache {
+      arguments: MoustacheArgs { .. },
+    } => {
+      // TODO: Schema provides template/variables separately but generator expects combined file
+      // Need to serialize to temp file first
+      Ok(())
+    }
+    Generation::Script {
+      arguments: ScriptArgs { name, text, renew },
+    } => generators::generate_script(
+      Path::new(&name),
+      &text,
+      renew.unwrap_or(false),
+    ),
+    Generation::Sops {
+      arguments: SopsArgs { .. },
+    } => {
+      // TODO: Schema provides secrets value but generator expects file path
+      // Need to serialize secrets to temp file first
+      Ok(())
+    }
+  }
+}
+
+pub fn run_export_spec(cmd: Export) -> CrylResult<()> {
+  match cmd {
+    Export::Copy {
+      arguments: CopyExportArgs { from, to },
+    } => exporters::export_copy(Path::new(&from), Path::new(&to)),
+    Export::Vault {
+      arguments: VaultExportArgs { path },
+    } => exporters::export_vault(&path),
+    Export::VaultFile {
+      arguments: VaultFileExportArgs { path, file },
+    } => exporters::export_vault_file(&path, &file),
+  }
+}
+
+pub fn run_import_command(cmd: ImportCommands) -> CrylResult<()> {
   match cmd {
     ImportCommands::Copy {
       from,
@@ -58,7 +582,7 @@ pub fn run_import(cmd: ImportCommands) -> CrylResult<()> {
   }
 }
 
-pub fn run_generate(cmd: GenerateCommands) -> CrylResult<()> {
+pub fn run_generate_command(cmd: GenerateCommands) -> CrylResult<()> {
   match cmd {
     GenerateCommands::Copy { from, to, renew } => {
       generators::generate_copy(&from, &to, renew)
@@ -100,16 +624,11 @@ pub fn run_generate(cmd: GenerateCommands) -> CrylResult<()> {
       renew,
     } => generators::generate_pin(&name, length, renew),
     GenerateCommands::Password {
-      name,
-      length,
-      renew,
-    } => generators::generate_password(&name, length, renew),
-    GenerateCommands::PasswordArgon2 {
       public,
       private,
       length,
       renew,
-    } => generators::generate_password_argon2(&public, &private, length, renew),
+    } => generators::generate_password(&public, &private, length, renew),
     GenerateCommands::PasswordCrypt3 {
       public,
       private,
@@ -403,7 +922,7 @@ pub fn run_generate(cmd: GenerateCommands) -> CrylResult<()> {
   }
 }
 
-pub fn run_export(cmd: ExportCommands) -> CrylResult<()> {
+pub fn run_export_command(cmd: ExportCommands) -> CrylResult<()> {
   match cmd {
     ExportCommands::Copy { from, to } => exporters::export_copy(&from, &to),
     ExportCommands::Vault { path } => exporters::export_vault(&path),
