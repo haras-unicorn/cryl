@@ -1,4 +1,4 @@
-use crate::common::CrylResult;
+use crate::common::{CrylError, CrylResult};
 use crate::{cli::*, exporters, importers};
 use crate::{generators, schema::*};
 use std::path::Path;
@@ -31,7 +31,10 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
   }
 }
 
-pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
+pub fn run_generate_spec(
+  cmd: &Generation,
+  allow_script: bool,
+) -> CrylResult<()> {
   match cmd {
     Generation::Copy {
       arguments: CopyGenArgs { from, to, renew },
@@ -546,11 +549,19 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
     }
     Generation::Script {
       arguments: ScriptArgs { name, text, renew },
-    } => generators::generate_script(
-      Path::new(&name),
-      text,
-      renew.unwrap_or(false),
-    ),
+    } => {
+      if !allow_script {
+        return Err(CrylError::Validation(
+          "Script generator not allowed. Use --allow-script to enable."
+            .to_string(),
+        ));
+      }
+      generators::generate_script(
+        Path::new(&name),
+        text,
+        renew.unwrap_or(false),
+      )
+    }
     Generation::Sops {
       arguments:
         SopsArgs {
