@@ -89,6 +89,7 @@ rec {
                   ssss
                   cockroachdb
                   bubblewrap
+                  nushell
                 ];
 
               buildInputs = mkBuildInputs pkgs;
