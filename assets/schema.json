@@ -1,21 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Specification",
+  "description": "Complete specification for secret generation pipeline.\nContains imports, generations, and exports to execute in order.",
   "type": "object",
   "properties": {
     "exports": {
+      "description": "Export operations to run after generation (if not dry-run).",
       "type": "array",
       "items": {
         "$ref": "#/$defs/Export"
       }
     },
     "generations": {
+      "description": "Secret generation operations.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/Generation"
       }
     },
     "imports": {
+      "description": "Import operations to run before generation.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/Import"
@@ -29,15 +33,19 @@
   ],
   "$defs": {
     "AgeKeyArgs": {
+      "description": "Arguments for Age encryption keypair generation.",
       "type": "object",
       "properties": {
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the public key.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both key files if they exist.",
           "type": [
             "boolean",
             "null"
@@ -50,15 +58,19 @@
       ]
     },
     "CockroachCaArgs": {
+      "description": "Arguments for CockroachDB CA certificate generation.",
       "type": "object",
       "properties": {
         "private": {
+          "description": "Path to save the CA private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the CA certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both CA files.",
           "type": [
             "boolean",
             "null"
@@ -71,27 +83,34 @@
       ]
     },
     "CockroachClientCertArgs": {
+      "description": "Arguments for CockroachDB client certificate generation.",
       "type": "object",
       "properties": {
         "ca_private": {
+          "description": "Path to the CockroachDB CA private key.",
           "type": "string"
         },
         "ca_public": {
+          "description": "Path to the CockroachDB CA certificate.",
           "type": "string"
         },
         "private": {
+          "description": "Path to save the client private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the client certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both certificate and key files.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "user": {
+          "description": "CockroachDB username for the client certificate.",
           "type": "string"
         }
       },
@@ -104,27 +123,34 @@
       ]
     },
     "CockroachNodeCertArgs": {
+      "description": "Arguments for CockroachDB node certificate generation.",
       "type": "object",
       "properties": {
         "ca_private": {
+          "description": "Path to the CockroachDB CA private key.",
           "type": "string"
         },
         "ca_public": {
+          "description": "Path to the CockroachDB CA certificate.",
           "type": "string"
         },
         "hosts": {
+          "description": "Comma‑separated hostnames/IPs for Subject Alternative Names.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "private": {
+          "description": "Path to save the node private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the node certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both certificate and key files.",
           "type": [
             "boolean",
             "null"
@@ -140,12 +166,15 @@
       ]
     },
     "CopyExportArgs": {
+      "description": "Arguments for file‑copy export.",
       "type": "object",
       "properties": {
         "from": {
+          "description": "Source file path.",
           "type": "string"
         },
         "to": {
+          "description": "Destination file path.",
           "type": "string"
         }
       },
@@ -155,18 +184,22 @@
       ]
     },
     "CopyGenArgs": {
+      "description": "Arguments for file‑copy generation.",
       "type": "object",
       "properties": {
         "from": {
+          "description": "Source file path.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "to": {
+          "description": "Destination file path.",
           "type": "string"
         }
       },
@@ -176,18 +209,22 @@
       ]
     },
     "CopyImportArgs": {
+      "description": "Arguments for file‑copy import.",
       "type": "object",
       "properties": {
         "allow_fail": {
+          "description": "If true, missing source does not cause failure.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "from": {
+          "description": "Source file path.",
           "type": "string"
         },
         "to": {
+          "description": "Destination file path.",
           "type": "string"
         }
       },
@@ -197,18 +234,23 @@
       ]
     },
     "DataGenArgs": {
+      "description": "Arguments for structured‑data generation (JSON/YAML/TOML).",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Destination file name.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
-        "value": true
+        "value": {
+          "description": "Structured data to serialize."
+        }
       },
       "required": [
         "name",
@@ -216,12 +258,15 @@
       ]
     },
     "DhparamArgs": {
+      "description": "Arguments for OpenSSL DH parameters generation.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Path to save the DH parameters file.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it exists.",
           "type": [
             "boolean",
             "null"
@@ -233,18 +278,22 @@
       ]
     },
     "EnvArgs": {
+      "description": "Arguments for environment (.env) file generation.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Destination file path.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "variables": {
+          "description": "Key‑value pairs; values can be strings or file paths.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -257,8 +306,10 @@
       ]
     },
     "Export": {
+      "description": "Export operation - pushes generated secrets to external systems.",
       "oneOf": [
         {
+          "description": "Export all files in current directory to Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -275,6 +326,7 @@
           ]
         },
         {
+          "description": "Export a single file to Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -282,7 +334,7 @@
             },
             "exporter": {
               "type": "string",
-              "const": "vault_file"
+              "const": "vault-file"
             }
           },
           "required": [
@@ -291,6 +343,7 @@
           ]
         },
         {
+          "description": "Copy file to local filesystem.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -309,8 +362,10 @@
       ]
     },
     "Generation": {
+      "description": "Secret generation operation.",
       "oneOf": [
         {
+          "description": "Copy file during generation phase.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -327,6 +382,7 @@
           ]
         },
         {
+          "description": "Write text file with literal content.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -343,6 +399,7 @@
           ]
         },
         {
+          "description": "Generate JSON file from structured data.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -359,6 +416,7 @@
           ]
         },
         {
+          "description": "Generate YAML file from structured data.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -375,6 +433,7 @@
           ]
         },
         {
+          "description": "Generate TOML file from structured data.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -391,6 +450,7 @@
           ]
         },
         {
+          "description": "Generate random alphanumeric identifier.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -407,6 +467,7 @@
           ]
         },
         {
+          "description": "Generate random alphanumeric key.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -423,6 +484,7 @@
           ]
         },
         {
+          "description": "Split a key into Shamir secret shares.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -439,6 +501,7 @@
           ]
         },
         {
+          "description": "Combine Shamir shares back into a key.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -455,6 +518,7 @@
           ]
         },
         {
+          "description": "Generate numeric PIN.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -471,6 +535,7 @@
           ]
         },
         {
+          "description": "Generate password with Argon2 hash.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -487,6 +552,7 @@
           ]
         },
         {
+          "description": "Generate password with yescrypt hash.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -503,6 +569,7 @@
           ]
         },
         {
+          "description": "Generate age encryption keypair.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -519,6 +586,7 @@
           ]
         },
         {
+          "description": "Generate SSH keypair (ed25519).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -535,6 +603,7 @@
           ]
         },
         {
+          "description": "Generate WireGuard keypair.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -551,6 +620,7 @@
           ]
         },
         {
+          "description": "Generate TLS Root CA certificate (EC P‑256).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -567,6 +637,7 @@
           ]
         },
         {
+          "description": "Generate TLS Intermediate CA certificate (EC P‑256).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -583,6 +654,7 @@
           ]
         },
         {
+          "description": "Generate TLS leaf certificate (EC P‑256).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -599,6 +671,7 @@
           ]
         },
         {
+          "description": "Generate TLS Root CA certificate (RSA 4096).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -615,6 +688,7 @@
           ]
         },
         {
+          "description": "Generate TLS Intermediate CA certificate (RSA 4096).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -631,6 +705,7 @@
           ]
         },
         {
+          "description": "Generate TLS leaf certificate (RSA 4096).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -647,6 +722,7 @@
           ]
         },
         {
+          "description": "Generate OpenSSL DH parameters (2048‑bit).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -663,6 +739,7 @@
           ]
         },
         {
+          "description": "Generate Nebula CA certificate.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -679,6 +756,7 @@
           ]
         },
         {
+          "description": "Generate Nebula node certificate.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -695,6 +773,7 @@
           ]
         },
         {
+          "description": "Generate CockroachDB CA certificate.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -711,6 +790,7 @@
           ]
         },
         {
+          "description": "Generate CockroachDB node certificate.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -727,6 +807,7 @@
           ]
         },
         {
+          "description": "Generate CockroachDB client certificate.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -743,6 +824,7 @@
           ]
         },
         {
+          "description": "Generate environment (.env) file from key‑value pairs.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -759,6 +841,7 @@
           ]
         },
         {
+          "description": "Generate file from Mustache template.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -775,6 +858,7 @@
           ]
         },
         {
+          "description": "Generate and execute Nushell script (requires --allow-script).",
           "type": "object",
           "properties": {
             "arguments": {
@@ -791,6 +875,7 @@
           ]
         },
         {
+          "description": "Generate SOPS‑encrypted YAML with Age recipients.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -809,9 +894,11 @@
       ]
     },
     "IdGenArgs": {
+      "description": "Arguments for random identifier/key generation.",
       "type": "object",
       "properties": {
         "length": {
+          "description": "Length of alphanumeric string (default: id=16, key=32).",
           "type": [
             "integer",
             "null"
@@ -820,9 +907,11 @@
           "minimum": 0
         },
         "name": {
+          "description": "Destination file name.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
@@ -834,8 +923,10 @@
       ]
     },
     "Import": {
+      "description": "Import operation - brings existing data into the working directory.",
       "oneOf": [
         {
+          "description": "Import all files from a Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -852,6 +943,7 @@
           ]
         },
         {
+          "description": "Import a single file from a Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -859,7 +951,7 @@
             },
             "importer": {
               "type": "string",
-              "const": "vault_file"
+              "const": "vault-file"
             }
           },
           "required": [
@@ -868,6 +960,7 @@
           ]
         },
         {
+          "description": "Copy a file from local filesystem.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -886,24 +979,29 @@
       ]
     },
     "KeyCombineArgs": {
+      "description": "Arguments for Shamir secret‑sharing combine.",
       "type": "object",
       "properties": {
         "key": {
+          "description": "Path to save reconstructed key.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "shares": {
+          "description": "List of share file paths to combine.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "threshold": {
+          "description": "Required shares (must match original split threshold).",
           "type": "integer",
           "format": "uint32",
           "minimum": 0
@@ -916,26 +1014,32 @@
       ]
     },
     "KeySplitArgs": {
+      "description": "Arguments for Shamir secret‑sharing split.",
       "type": "object",
       "properties": {
         "key": {
+          "description": "Path to source key file (raw content).",
           "type": "string"
         },
         "prefix": {
+          "description": "Filename prefix for each share (e.g., \"share‑0\", \"share‑1\").",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite existing share files.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "shares": {
+          "description": "Total number of shares to generate.",
           "type": "integer",
           "format": "uint32",
           "minimum": 0
         },
         "threshold": {
+          "description": "Minimum shares required to reconstruct.",
           "type": "integer",
           "format": "uint32",
           "minimum": 0
@@ -949,21 +1053,26 @@
       ]
     },
     "MoustacheArgs": {
+      "description": "Arguments for Mustache template generation.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Base name for output files (‑variables, ‑template suffixes added).",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite output file if it exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "template": {
+          "description": "Mustache template content.",
           "type": "string"
         },
         "variables": {
+          "description": "Variables to substitute; values can be strings or file paths.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -977,9 +1086,11 @@
       ]
     },
     "NebulaCaArgs": {
+      "description": "Arguments for Nebula CA certificate generation.",
       "type": "object",
       "properties": {
         "days": {
+          "description": "Certificate validity in days (default: 3650).",
           "type": [
             "integer",
             "null"
@@ -988,15 +1099,19 @@
           "minimum": 0
         },
         "name": {
+          "description": "Common Name for the Nebula CA.",
           "type": "string"
         },
         "private": {
+          "description": "Path to save the CA private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the CA certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both CA files.",
           "type": [
             "boolean",
             "null"
@@ -1010,27 +1125,35 @@
       ]
     },
     "NebulaCertArgs": {
+      "description": "Arguments for Nebula node certificate generation.",
       "type": "object",
       "properties": {
         "ca_private": {
+          "description": "Path to the Nebula CA private key.",
           "type": "string"
         },
         "ca_public": {
+          "description": "Path to the Nebula CA certificate.",
           "type": "string"
         },
         "ip": {
+          "description": "Node IP in CIDR or plain IP form (e.g., \"10.1.1.5/24\").",
           "type": "string"
         },
         "name": {
+          "description": "Common Name for the node certificate.",
           "type": "string"
         },
         "private": {
+          "description": "Path to save the node private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the node certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both certificate and key files.",
           "type": [
             "boolean",
             "null"
@@ -1047,9 +1170,11 @@
       ]
     },
     "PasswordGenArgs": {
+      "description": "Arguments for password generation (Argon2 or yescrypt).",
       "type": "object",
       "properties": {
         "length": {
+          "description": "Password length in characters (default: 8).",
           "type": [
             "integer",
             "null"
@@ -1058,12 +1183,15 @@
           "minimum": 0
         },
         "private": {
+          "description": "Path to save the plaintext (private) password.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the hashed (public) password.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both public and private files if they exist.",
           "type": [
             "boolean",
             "null"
@@ -1076,9 +1204,11 @@
       ]
     },
     "PinGenArgs": {
+      "description": "Arguments for numeric PIN generation.",
       "type": "object",
       "properties": {
         "length": {
+          "description": "Number of digits (default: 8).",
           "type": [
             "integer",
             "null"
@@ -1087,9 +1217,11 @@
           "minimum": 0
         },
         "name": {
+          "description": "Destination file name.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
@@ -1101,18 +1233,22 @@
       ]
     },
     "ScriptArgs": {
+      "description": "Arguments for Nushell script generation and execution.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Path to save the script.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite script file if it exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "text": {
+          "description": "Nushell script content.",
           "type": "string"
         }
       },
@@ -1122,24 +1258,31 @@
       ]
     },
     "SopsArgs": {
+      "description": "Arguments for SOPS‑encrypted secret generation.",
       "type": "object",
       "properties": {
         "age": {
+          "description": "Path to file containing Age recipient(s).",
           "type": "string"
         },
         "private": {
+          "description": "Path to save plaintext YAML (private).",
           "type": "string"
         },
         "public": {
+          "description": "Path to save encrypted YAML (public).",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both public and private files.",
           "type": [
             "boolean",
             "null"
           ]
         },
-        "secrets": true
+        "secrets": {
+          "description": "Secret key‑value pairs; values can be strings or file paths."
+        }
       },
       "required": [
         "age",
@@ -1149,18 +1292,23 @@
       ]
     },
     "SshKeyArgs": {
+      "description": "Arguments for SSH keypair generation (ed25519).",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Key comment (e.g., email or hostname).",
           "type": "string"
         },
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the public key.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both key files if they exist.",
           "type": [
             "boolean",
             "null"
@@ -1174,18 +1322,22 @@
       ]
     },
     "TextGenArgs": {
+      "description": "Arguments for text‑file generation.",
       "type": "object",
       "properties": {
         "name": {
+          "description": "Destination file name.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite destination if it already exists.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "text": {
+          "description": "Literal text content to write.",
           "type": "string"
         }
       },
@@ -1195,21 +1347,27 @@
       ]
     },
     "TlsIntermediaryArgs": {
+      "description": "Arguments for TLS Intermediate CA generation.",
       "type": "object",
       "properties": {
         "ca_private": {
+          "description": "Path to the issuing CA private key.",
           "type": "string"
         },
         "ca_public": {
+          "description": "Path to the issuing CA certificate.",
           "type": "string"
         },
         "common_name": {
+          "description": "Common Name for the CA (e.g., \"Sarah Root CA\").",
           "type": "string"
         },
         "config": {
+          "description": "Path to write OpenSSL configuration file.",
           "type": "string"
         },
         "days": {
+          "description": "Certificate validity in days (default: 3650 ≈ 10 years).",
           "type": [
             "integer",
             "null"
@@ -1218,35 +1376,42 @@
           "minimum": 0
         },
         "organization": {
+          "description": "Organization name (e.g., \"Green Energy Devs\").",
           "type": "string"
         },
         "pathlen": {
+          "description": "Path length constraint (-1 for unlimited, default: 1).",
           "type": [
             "integer",
             "null"
           ],
-          "format": "uint32",
-          "minimum": 0
+          "format": "int32"
         },
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the self‑signed certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite config, key, and certificate files.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "request": {
+          "description": "Path to save the Certificate Signing Request.",
           "type": "string"
         },
         "request_config": {
+          "description": "Path to write the CSR‑only OpenSSL config.",
           "type": "string"
         },
         "serial": {
+          "description": "Path to the serial number tracking file.",
           "type": "string"
         }
       },
@@ -1254,8 +1419,8 @@
         "common_name",
         "organization",
         "config",
-        "public",
         "private",
+        "public",
         "ca_public",
         "ca_private",
         "request",
@@ -1264,21 +1429,27 @@
       ]
     },
     "TlsLeafArgs": {
+      "description": "Arguments for TLS leaf certificate generation.",
       "type": "object",
       "properties": {
         "ca_private": {
+          "description": "Path to the issuing CA private key.",
           "type": "string"
         },
         "ca_public": {
+          "description": "Path to the issuing CA certificate.",
           "type": "string"
         },
         "common_name": {
+          "description": "Common Name for the CA (e.g., \"Sarah Root CA\").",
           "type": "string"
         },
         "config": {
+          "description": "Path to write OpenSSL configuration file.",
           "type": "string"
         },
         "days": {
+          "description": "Certificate validity in days (default: 3650 ≈ 10 years).",
           "type": [
             "integer",
             "null"
@@ -1287,41 +1458,49 @@
           "minimum": 0
         },
         "organization": {
+          "description": "Organization name (e.g., \"Green Energy Devs\").",
           "type": "string"
         },
         "pathlen": {
+          "description": "Path length constraint (-1 for unlimited, default: 1).",
           "type": [
             "integer",
             "null"
           ],
-          "format": "uint32",
-          "minimum": 0
+          "format": "int32"
         },
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the self‑signed certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite config, key, and certificate files.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "request": {
+          "description": "Path to save the Certificate Signing Request.",
           "type": "string"
         },
         "request_config": {
+          "description": "Path to write the CSR‑only OpenSSL config.",
           "type": "string"
         },
         "sans": {
+          "description": "Subject Alternative Names (SANs) as comma‑separated list.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "serial": {
+          "description": "Path to the serial number tracking file.",
           "type": "string"
         }
       },
@@ -1329,8 +1508,8 @@
         "common_name",
         "organization",
         "config",
-        "public",
         "private",
+        "public",
         "ca_public",
         "ca_private",
         "request",
@@ -1340,15 +1519,19 @@
       ]
     },
     "TlsRootArgs": {
+      "description": "Common arguments for TLS Root CA generation (EC or RSA).",
       "type": "object",
       "properties": {
         "common_name": {
+          "description": "Common Name for the CA (e.g., \"Sarah Root CA\").",
           "type": "string"
         },
         "config": {
+          "description": "Path to write OpenSSL configuration file.",
           "type": "string"
         },
         "days": {
+          "description": "Certificate validity in days (default: 3650 ≈ 10 years).",
           "type": [
             "integer",
             "null"
@@ -1357,23 +1540,27 @@
           "minimum": 0
         },
         "organization": {
+          "description": "Organization name (e.g., \"Green Energy Devs\").",
           "type": "string"
         },
         "pathlen": {
+          "description": "Path length constraint (-1 for unlimited, default: 1).",
           "type": [
             "integer",
             "null"
           ],
-          "format": "uint32",
-          "minimum": 0
+          "format": "int32"
         },
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the self‑signed certificate.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite config, key, and certificate files.",
           "type": [
             "boolean",
             "null"
@@ -1384,14 +1571,16 @@
         "common_name",
         "organization",
         "config",
-        "public",
-        "private"
+        "private",
+        "public"
       ]
     },
     "VaultExportArgs": {
+      "description": "Arguments for Vault KV export.",
       "type": "object",
       "properties": {
         "path": {
+          "description": "Base Vault KV path (e.g., \"kv/my‑app\").",
           "type": "string"
         }
       },
@@ -1400,12 +1589,15 @@
       ]
     },
     "VaultFileExportArgs": {
+      "description": "Arguments for single‑file Vault KV export.",
       "type": "object",
       "properties": {
         "file": {
+          "description": "Local file to export (key becomes filename).",
           "type": "string"
         },
         "path": {
+          "description": "Base Vault KV path.",
           "type": "string"
         }
       },
@@ -1415,18 +1607,22 @@
       ]
     },
     "VaultFileImportArgs": {
+      "description": "Arguments for single‑file Vault KV import.",
       "type": "object",
       "properties": {
         "allow_fail": {
+          "description": "If true, missing source does not cause failure.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "file": {
+          "description": "Key name of the file within the Vault secret.",
           "type": "string"
         },
         "path": {
+          "description": "Vault KV path to import from.",
           "type": "string"
         }
       },
@@ -1436,15 +1632,18 @@
       ]
     },
     "VaultImportArgs": {
+      "description": "Arguments for Vault KV import.",
       "type": "object",
       "properties": {
         "allow_fail": {
+          "description": "If true, missing source does not cause failure.",
           "type": [
             "boolean",
             "null"
           ]
         },
         "path": {
+          "description": "Vault KV path to import from (e.g., \"kv/my‑app\").",
           "type": "string"
         }
       },
@@ -1453,15 +1652,19 @@
       ]
     },
     "WireguardKeyArgs": {
+      "description": "Arguments for WireGuard keypair generation.",
       "type": "object",
       "properties": {
         "private": {
+          "description": "Path to save the private key.",
           "type": "string"
         },
         "public": {
+          "description": "Path to save the public key.",
           "type": "string"
         },
         "renew": {
+          "description": "Overwrite both key files if they exist.",
           "type": [
             "boolean",
             "null"

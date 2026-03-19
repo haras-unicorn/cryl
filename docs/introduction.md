@@ -39,6 +39,30 @@ cryl will always take these arguments into account:
 - `--verbose` - turn on logging from modules
 - `--very-verbose` - turn on logging from tools (implies verbose)
 
+### Manifest
+
+After each successful run, cryl creates a manifest file (`cryl-manifest.json` by
+default) in the working directory. This manifest serves as an audit trail and
+helps detect supply chain attacks or tampering.
+
+The manifest contains:
+
+- **cryl_version** - The version of cryl used
+- **timestamp** - When the run occurred (ISO 8601 / RFC 3339 format)
+- **spec_hash** - SHA256 hash of the input specification
+- **spec_format** - Format of the specification (json, yaml, toml)
+- **environment** - Map of tool names (openssl, ssh-keygen, etc.) to their
+  versions and paths
+- **output_hashes** - SHA256 hashes of all generated files
+
+You can control manifest creation with:
+
+- `--no-manifest` - Don't create a manifest file
+- `--manifest-format` - Change the format (json, yaml, toml; default: json)
+
+The manifest is only created when the run succeeds. No manifest is written on
+error. The manifest file itself is not included in output_hashes.
+
 ### Sandbox
 
 By default, cryl runs in a [bubblewrap] sandbox. The `--nosandbox` argument can
@@ -51,13 +75,6 @@ following arguments will be taken into account:
 - `--tools: list<string> = []`- additional list of tool binaries that cryl is
   allowed to access via PATH
 - `--allow-net`- allow network while running
-- `--timeout: int = (1000 * 60 * 60)`- maximum allowed runtime in seconds
-- `--max-mem: int = (1024 * 1024 * 128)`- maximum allowed memory while running
-  in bytes
-- `--max-tasks: int = 64`- maximum allowed tasks while running
-- `--max-file-size: int = (1024 * 1024 * 128)`- maximum allowed generated file
-  size while running in bytes
-- `--max-open-files: int = 1024`- maximum allowed open files while running
 
 When not in a sandbox, cryl will take these arguments into account:
 
@@ -70,11 +87,32 @@ When not in a sandbox, cryl will take these arguments into account:
   done with work. You can disable this behavior by passing this argument.
 
 cryl also allows you to invoke all of the importers, generators and exporters on
-their own which will be described in the following chapters. Please note,
-however, that while cryl does some have safety precautions when using it in the
-main ways as described here, invoking the importers, generators and exporters by
-themselves is done with minimal safety precautions which is limited to setting
-file permissions on generated files.
+their own. Please note, however, that while cryl does have safety precautions
+when using it in the main ways as described here, invoking the importers,
+generators and exporters by themselves is done with minimal safety precautions
+which is limited to setting file permissions on generated files.
+
+### Additional Commands
+
+In addition to the main commands above, cryl provides several other commands:
+
+- `cryl schema`: Print the JSON schema used to validate specifications to
+  stdout. This can be useful for IDE integration or validation tools.
+
+- `cryl import <importer> [args]`: Run a specific importer directly. This allows
+  you to test any importer (copy, vault, vault-file) without a full
+  specification. See the [Importers](importers.md) chapter for available
+  importers and their arguments.
+
+- `cryl generate <generator> [args]`: Run a specific generator directly. This
+  allows you to test any generator (id, key, password, tls-root, etc.) without a
+  full specification. See the [Generators](generators.md) chapter for available
+  generators and their arguments.
+
+- `cryl export <exporter> [args]`: Run a specific exporter directly. This allows
+  you to test any exporter (copy, vault, vault-file) without a full
+  specification. See the [Exporters](exporters.md) chapter for available
+  exporters and their arguments.
 
 ## Specification
 

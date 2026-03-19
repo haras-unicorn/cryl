@@ -6,6 +6,7 @@ ignorePaths:
   - assets/rumor.nu
   - assets/schema.json
   - flake.nix
+  - MIGRATION.md
 ignoreWords:
   - haras
   - cryl
@@ -20,3 +21,4 @@ ignoreWords:
   - pathlen
   - cachix
   - makeself
+  - println

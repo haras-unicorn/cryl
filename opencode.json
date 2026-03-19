@@ -1,4 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["README.md", "CONTRIBUTING.md", "flake.nix"]
+  "instructions": [
+    "README.md",
+    "CONTRIBUTING.md",
+    "flake.nix",
+    "src/cryl/main.rs"
+  ]
 }
