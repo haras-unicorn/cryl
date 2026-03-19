@@ -85,25 +85,43 @@ pub fn run_generate_spec(cmd: Generation) -> CrylResult<()> {
       generators::generate_text(Path::new(&name), &text, renew.unwrap_or(false))
     }
     Generation::Json {
-      arguments: DataGenArgs { .. },
+      arguments: DataGenArgs { name, value, renew },
     } => {
-      // TODO: Schema provides value directly but generator expects file path
-      // Need to serialize value to temp file first
-      Ok(())
+      let data_path_str = format!("{}-json.json", name);
+      let data_path = Path::new(&data_path_str);
+      crate::common::serialize_to_file(&value, data_path)?;
+      generators::generate_json(
+        Path::new(&name),
+        "json",
+        data_path,
+        renew.unwrap_or(false),
+      )
     }
     Generation::Yaml {
-      arguments: DataGenArgs { .. },
+      arguments: DataGenArgs { name, value, renew },
     } => {
-      // TODO: Schema provides value directly but generator expects file path
-      // Need to serialize value to temp file first
-      Ok(())
+      let data_path_str = format!("{}-yaml.yaml", name);
+      let data_path = Path::new(&data_path_str);
+      crate::common::serialize_to_file(&value, data_path)?;
+      generators::generate_yaml(
+        Path::new(&name),
+        "yaml",
+        data_path,
+        renew.unwrap_or(false),
+      )
     }
     Generation::Toml {
-      arguments: DataGenArgs { .. },
+      arguments: DataGenArgs { name, value, renew },
     } => {
-      // TODO: Schema provides value directly but generator expects file path
-      // Need to serialize value to temp file first
-      Ok(())
+      let data_path_str = format!("{}-toml.toml", name);
+      let data_path = Path::new(&data_path_str);
+      crate::common::serialize_to_file(&value, data_path)?;
+      generators::generate_toml(
+        Path::new(&name),
+        "toml",
+        data_path,
+        renew.unwrap_or(false),
+      )
     }
     Generation::Id {
       arguments:
@@ -520,18 +538,50 @@ pub fn run_generate_spec(cmd: Generation) -> CrylResult<()> {
       renew.unwrap_or(false),
     ),
     Generation::Env {
-      arguments: EnvArgs { .. },
+      arguments:
+        EnvArgs {
+          name,
+          variables,
+          renew,
+        },
     } => {
-      // TODO: Schema provides HashMap but generator expects file path
-      // Need to serialize variables to temp file first
-      Ok(())
+      let vars_path_str = format!("{}-vars.json", name);
+      let vars_path = Path::new(&vars_path_str);
+      crate::common::serialize_to_file(&variables, vars_path)?;
+      generators::generate_env(
+        Path::new(&name),
+        "json",
+        vars_path,
+        renew.unwrap_or(false),
+      )
     }
     Generation::Moustache {
-      arguments: MoustacheArgs { .. },
+      arguments:
+        MoustacheArgs {
+          name,
+          template,
+          variables,
+          renew,
+        },
     } => {
-      // TODO: Schema provides template/variables separately but generator expects combined file
-      // Need to serialize to temp file first
-      Ok(())
+      #[derive(serde::Serialize)]
+      struct MustacheInput {
+        template: String,
+        variables: std::collections::HashMap<String, String>,
+      }
+      let input = MustacheInput {
+        template,
+        variables,
+      };
+      let input_path_str = format!("{}-input.json", name);
+      let input_path = Path::new(&input_path_str);
+      crate::common::serialize_to_file(&input, input_path)?;
+      generators::generate_mustache(
+        Path::new(&name),
+        "json",
+        input_path,
+        renew.unwrap_or(false),
+      )
     }
     Generation::Script {
       arguments: ScriptArgs { name, text, renew },
@@ -541,11 +591,27 @@ pub fn run_generate_spec(cmd: Generation) -> CrylResult<()> {
       renew.unwrap_or(false),
     ),
     Generation::Sops {
-      arguments: SopsArgs { .. },
+      arguments:
+        SopsArgs {
+          age,
+          public,
+          private,
+          secrets,
+          renew,
+        },
     } => {
-      // TODO: Schema provides secrets value but generator expects file path
-      // Need to serialize secrets to temp file first
-      Ok(())
+      // Serialize secrets to temp file
+      let secrets_path_str = format!("{}-secrets.json", private);
+      let secrets_path = Path::new(&secrets_path_str);
+      crate::common::serialize_to_file(&secrets, secrets_path)?;
+      generators::generate_sops(
+        Path::new(&age),
+        Path::new(&public),
+        Path::new(&private),
+        "json",
+        secrets_path,
+        renew.unwrap_or(false),
+      )
     }
   }
 }
