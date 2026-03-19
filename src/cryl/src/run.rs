@@ -1,7 +1,9 @@
 use crate::cli::*;
-use crate::common::{deserialize, CrylError, CrylResult, Format};
+use crate::common::{CrylError, CrylResult, Format, deserialize};
 use crate::dispatch::*;
+use crate::manifest::Manifest;
 use crate::schema::*;
+use crate::versions::tool_versions;
 use crate::{exporters, generators, importers};
 use clap::Parser;
 use schemars::schema_for;
@@ -83,6 +85,13 @@ fn run(
     );
   }
 
+  // Create manifest if not disabled
+  let mut manifest = if common.no_manifest {
+    None
+  } else {
+    Some(Manifest::new(spec_content, spec_format))
+  };
+
   // Validate import count
   if spec.imports.len() > common.max_imports {
     return Err(CrylError::Validation(format!(
@@ -124,6 +133,21 @@ fn run(
 
   for export in spec.exports.iter() {
     run_export_spec(export)?;
+  }
+
+  // Save manifest on successful completion
+  if let Some(mut manifest) = manifest {
+    // Record all tools that are available
+    for tool in tool_versions().keys() {
+      manifest.record_tool(tool);
+    }
+
+    // Record all output files
+    manifest.record_all_outputs()?;
+
+    // Parse manifest format from string
+    let manifest_format = Format::parse(&common.manifest_format)?;
+    manifest.save(manifest_format)?;
   }
 
   Ok(())
@@ -386,6 +410,11 @@ fn run_sandbox(
 
   // Add manifest format
   bwrap_args.push(format!("--manifest-format={}", common.manifest_format));
+
+  // Add no-manifest flag if set
+  if common.no_manifest {
+    bwrap_args.push("--no-manifest".to_string());
+  }
 
   // Run bwrap
   let output =

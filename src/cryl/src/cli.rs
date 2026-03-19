@@ -86,6 +86,10 @@ pub struct CommonArgs {
   #[arg(long, default_value = "json")]
   pub manifest_format: String,
 
+  /// Don't create a manifest file
+  #[arg(long)]
+  pub no_manifest: bool,
+
   /// Turn on logging from modules
   #[arg(long)]
   pub verbose: bool,

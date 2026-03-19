@@ -20,6 +20,7 @@ mod importers;
 mod manifest;
 mod run;
 mod schema;
+mod versions;
 
 use clap::Parser;
 use cli::*;

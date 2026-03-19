@@ -92,6 +92,57 @@ rec {
                   nushell
                 ];
 
+              # Helper to get version string from a package
+              getToolVersion =
+                pkg:
+                if pkg ? version then
+                  pkg.version
+                else if pkg ? name then
+                  (builtins.elemAt (builtins.match "^([^-]+)-.*" pkg.name) 0)
+                else
+                  "unknown";
+
+              # Generate sed commands to patch versions.rs
+              mkVersionPatches =
+                buildInputs:
+                let
+                  pkgNames = [
+                    "age"
+                    "sops"
+                    "nebula"
+                    "openssl"
+                    "mkpasswd"
+                    "openssh"
+                    "wireguard-tools"
+                    "vault"
+                    "vault-medusa"
+                    "libargon2"
+                    "ssss"
+                    "cockroachdb"
+                    "bubblewrap"
+                    "nushell"
+                  ];
+                  pkgVersions = lib.listToAttrs (
+                    map (pkgName: {
+                      name = pkgName;
+                      value =
+                        let
+                          pkg = lib.findFirst (
+                            p: p.pname == pkgName || (p ? name && lib.hasPrefix pkgName p.name)
+                          ) null buildInputs;
+                        in
+                        if pkg != null then getToolVersion pkg else "unknown";
+                    }) pkgNames
+                  );
+                in
+                lib.concatStringsSep "\n" (
+                  lib.mapAttrsToList (pkgName: version: ''
+                    if [ -f "$sourceRoot/src/cryl/src/versions.rs" ]; then
+                      sed -i "s|versions.insert(\"${pkgName}\", \"dev\")|versions.insert(\"${pkgName}\", \"${version}\")|g" "$sourceRoot/src/cryl/src/versions.rs"
+                    fi
+                  '') pkgVersions
+                );
+
               buildInputs = mkBuildInputs pkgs;
 
               externalPackages =
@@ -209,6 +260,9 @@ rec {
                         ];
                       name = cargoToml.package.name;
                       version = cargoToml.package.version;
+                      postUnpack = ''
+                        ${mkVersionPatches buildInputs}
+                      '';
                     }
                   );
 

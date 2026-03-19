@@ -10,7 +10,7 @@ use std::process::Command as StdCommand;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use testcontainers::{
-  runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt,
+  ContainerAsync, GenericImage, ImageExt, runners::AsyncRunner,
 };
 use tokio::net::TcpStream;
 
@@ -115,7 +115,8 @@ arguments.text = "my-secret-key-123"
   fs::write(&spec_path, spec_content).unwrap();
 
   let mut cmd = Command::cargo_bin("cryl").unwrap();
-  cmd.arg("path")
+  cmd
+    .arg("path")
     .arg(&spec_path)
     .arg("--nosandbox")
     .arg("--stay")
@@ -141,10 +142,7 @@ arguments.text = "my-secret-key-123"
     json["data"]["data"]["config.json"],
     "{\"port\": 8080, \"debug\": false}"
   );
-  assert_eq!(
-    json["data"]["data"]["secret.key"],
-    "my-secret-key-123"
-  );
+  assert_eq!(json["data"]["data"]["secret.key"], "my-secret-key-123");
 }
 
 /// Test vault_file exporter for single file
@@ -152,9 +150,7 @@ arguments.text = "my-secret-key-123"
 #[serial]
 async fn test_vault_file_export() {
   let _container: ContainerAsync<GenericImage> =
-    vault_container("cryl-vault-file-export-e2e")
-      .await
-      .unwrap();
+    vault_container("cryl-vault-file-export-e2e").await.unwrap();
 
   let temp_dir = TempDir::new().unwrap();
   let spec_path = temp_dir.path().join("spec.toml");
@@ -180,7 +176,8 @@ arguments.text = "master-secret-value-xyz789"
   fs::write(&spec_path, spec_content).unwrap();
 
   let mut cmd = Command::cargo_bin("cryl").unwrap();
-  cmd.arg("path")
+  cmd
+    .arg("path")
     .arg(&spec_path)
     .arg("--nosandbox")
     .arg("--stay")
@@ -248,7 +245,8 @@ arguments.value = { timeout = 30, retries = 3 }
   fs::write(&spec_path, spec_content).unwrap();
 
   let mut cmd = Command::cargo_bin("cryl").unwrap();
-  cmd.arg("path")
+  cmd
+    .arg("path")
     .arg(&spec_path)
     .arg("--nosandbox")
     .arg("--stay")
@@ -318,7 +316,8 @@ arguments.text = "should-not-be-exported"
   fs::write(&spec_path, spec_content).unwrap();
 
   let mut cmd = Command::cargo_bin("cryl").unwrap();
-  cmd.arg("path")
+  cmd
+    .arg("path")
     .arg(&spec_path)
     .arg("--nosandbox")
     .arg("--stay")
@@ -338,7 +337,10 @@ arguments.text = "should-not-be-exported"
     .expect("Failed to get vault data");
 
   // This should fail because the path doesn't exist
-  assert!(!output.status.success(), "Vault path should not exist in dry-run");
+  assert!(
+    !output.status.success(),
+    "Vault path should not exist in dry-run"
+  );
 }
 
 /// Test vault_file export with JSON data
@@ -371,7 +373,8 @@ arguments.value = { database = { host = "localhost", port = 5432 }, cache = { en
   fs::write(&spec_path, spec_content).unwrap();
 
   let mut cmd = Command::cargo_bin("cryl").unwrap();
-  cmd.arg("path")
+  cmd
+    .arg("path")
     .arg(&spec_path)
     .arg("--nosandbox")
     .arg("--stay")
