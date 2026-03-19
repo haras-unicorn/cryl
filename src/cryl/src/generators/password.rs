@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Stdio;
 
-use crate::common::{generate_random_alphanumeric, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, generate_random_alphanumeric};
 
 /// Generate random password with argon2 hashing
 ///
@@ -129,8 +129,8 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_password_argon2_no_overwrite_without_renew(
-  ) -> anyhow::Result<()> {
+  fn test_generate_password_argon2_no_overwrite_without_renew()
+  -> anyhow::Result<()> {
     let temp = TempDir::new().unwrap();
     let public_path = temp.path().join("public");
     let private_path = temp.path().join("private");

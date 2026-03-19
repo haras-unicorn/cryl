@@ -1,4 +1,4 @@
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// Vault importer - imports all files from a Vault KV path
 pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {

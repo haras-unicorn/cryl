@@ -1,10 +1,10 @@
 use std::path::Path;
 
 use crate::common::{
-  build_basic_constraints, build_intermediary_final_config,
-  build_intermediary_request_config, generate_csr, generate_private_key,
-  save_private_key, save_public_file, should_skip_generation, sign_certificate,
-  CrylResult, TlsAlgorithm,
+  CrylResult, TlsAlgorithm, build_basic_constraints,
+  build_intermediary_final_config, build_intermediary_request_config,
+  generate_csr, generate_private_key, save_private_key, save_public_file,
+  should_skip_generation, sign_certificate,
 };
 
 /// Generate a TLS Intermediate CA (key + CSR + signed cert) using RSA algorithm
@@ -83,8 +83,8 @@ pub fn generate_tls_rsa_intermediary(
 mod tests {
   use super::*;
   use crate::common::{
-    build_root_config, generate_private_key, generate_self_signed_cert,
-    save_private_key, save_public_file, TlsAlgorithm,
+    TlsAlgorithm, build_root_config, generate_private_key,
+    generate_self_signed_cert, save_private_key, save_public_file,
   };
   use std::os::unix::fs::PermissionsExt;
   use tempfile::TempDir;

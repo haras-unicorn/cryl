@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::common::{
-  deserialize, read_file_if_exists, save_atomic, serialize, CrylError,
-  CrylResult, Format,
+  CrylError, CrylResult, Format, deserialize, read_file_if_exists, save_atomic,
+  serialize,
 };
 
 /// Generate SOPS-encrypted secrets from key-value inputs

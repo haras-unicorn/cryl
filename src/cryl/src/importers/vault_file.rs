@@ -1,4 +1,4 @@
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// Vault file importer - imports a single file from a Vault KV path
 pub fn import_vault_file(
@@ -156,8 +156,8 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_import_vault_file_missing_key_no_allow_fail(
-  ) -> anyhow::Result<()> {
+  async fn test_import_vault_file_missing_key_no_allow_fail()
+  -> anyhow::Result<()> {
     let _container = vault_container("vfile-missing-key-err-test").await?;
 
     Command::new("vault")
@@ -195,8 +195,8 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn test_import_vault_file_vault_not_running_allow_fail(
-  ) -> anyhow::Result<()> {
+  async fn test_import_vault_file_vault_not_running_allow_fail()
+  -> anyhow::Result<()> {
     // Test without starting container
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
@@ -209,8 +209,8 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn test_import_vault_file_vault_not_running_no_allow_fail(
-  ) -> anyhow::Result<()> {
+  async fn test_import_vault_file_vault_not_running_no_allow_fail()
+  -> anyhow::Result<()> {
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
 

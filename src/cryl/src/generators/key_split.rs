@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// Split a key into Shamir shares and save them
 ///

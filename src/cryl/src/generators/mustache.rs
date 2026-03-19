@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::common::{
-  deserialize, read_file_if_exists, save_atomic, CrylResult, Format,
+  CrylResult, Format, deserialize, read_file_if_exists, save_atomic,
 };
 
 /// Mustache template input structure

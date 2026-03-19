@@ -1,4 +1,4 @@
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 use std::path::Path;
 
 /// Copy generator - copies a file from source to destination

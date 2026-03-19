@@ -1,4 +1,4 @@
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 use std::path::Path;
 
 /// Copy importer - copies a file from source to destination

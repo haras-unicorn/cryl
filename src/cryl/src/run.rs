@@ -23,7 +23,7 @@ pub fn run_from_path(
   let content = std::fs::read_to_string(spec_path)?;
   let spec: Specification = deserialize(&content, format)?;
 
-  run(&spec, &common, &sandbox)?;
+  run(&spec, common, sandbox)?;
 
   println!("TODO: Run from path");
   Ok(())

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::common::{generate_random_alphanumeric, save_atomic, CrylResult};
+use crate::common::{CrylResult, generate_random_alphanumeric, save_atomic};
 
 /// Generate a random alphanumeric key and save it to a file
 ///

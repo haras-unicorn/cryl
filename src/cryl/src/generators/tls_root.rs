@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use crate::common::{
-  build_basic_constraints, build_root_config, generate_private_key,
-  generate_self_signed_cert, save_private_key, save_public_file,
-  should_skip_generation, CrylResult, TlsAlgorithm,
+  CrylResult, TlsAlgorithm, build_basic_constraints, build_root_config,
+  generate_private_key, generate_self_signed_cert, save_private_key,
+  save_public_file, should_skip_generation,
 };
 
 /// Generate a TLS Root CA (private key + self-signed certificate) using EC

@@ -30,7 +30,10 @@ pub async fn vault_container(
         continue;
       }
       Err(e) => {
-        return Err(anyhow::anyhow!("Vault port never became reachable: {}", e));
+        return Err(anyhow::anyhow!(
+          "Vault port never became reachable: {}",
+          e
+        ));
       }
     }
   }

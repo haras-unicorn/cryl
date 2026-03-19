@@ -19,7 +19,7 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
     ),
     Import::Vault {
       arguments: VaultImportArgs { path, allow_fail },
-    } => importers::import_vault(&path, allow_fail.unwrap_or(false)),
+    } => importers::import_vault(path, allow_fail.unwrap_or(false)),
     Import::VaultFile {
       arguments:
         VaultFileImportArgs {
@@ -27,9 +27,7 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
           file,
           allow_fail,
         },
-    } => {
-      importers::import_vault_file(&path, &file, allow_fail.unwrap_or(false))
-    }
+    } => importers::import_vault_file(path, file, allow_fail.unwrap_or(false)),
   }
 }
 
@@ -45,7 +43,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
     Generation::Text {
       arguments: TextGenArgs { name, text, renew },
     } => {
-      generators::generate_text(Path::new(&name), &text, renew.unwrap_or(false))
+      generators::generate_text(Path::new(&name), text, renew.unwrap_or(false))
     }
     Generation::Json {
       arguments: DataGenArgs { name, value, renew },
@@ -171,7 +169,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           renew,
         },
     } => generators::generate_ssh_key(
-      &name,
+      name,
       Path::new(&public),
       Path::new(&private),
       None,
@@ -200,7 +198,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
         },
     } => generators::generate_key_split(
       Path::new(&key),
-      &prefix,
+      prefix,
       *threshold as usize,
       *shares as usize,
       renew.unwrap_or(false),
@@ -232,8 +230,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           renew,
         },
     } => generators::generate_tls_root(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       Path::new(&config),
       Path::new(&private),
       Path::new(&public),
@@ -262,8 +260,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           serial,
         },
     } => generators::generate_tls_intermediary(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       Path::new(&config),
       Path::new(&request_config),
       Path::new(&private),
@@ -301,8 +299,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           sans,
         },
     } => generators::generate_tls_leaf(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       &sans.join(","),
       Path::new(&config),
       Path::new(&request_config),
@@ -328,8 +326,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           renew,
         },
     } => generators::generate_tls_rsa_root(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       Path::new(&config),
       Path::new(&private),
       Path::new(&public),
@@ -358,8 +356,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           serial,
         },
     } => generators::generate_tls_rsa_intermediary(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       Path::new(&config),
       Path::new(&request_config),
       Path::new(&private),
@@ -397,8 +395,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           sans,
         },
     } => generators::generate_tls_rsa_leaf(
-      &common_name,
-      &organization,
+      common_name,
+      organization,
       &sans.join(","),
       Path::new(&config),
       Path::new(&request_config),
@@ -426,7 +424,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
           renew,
         },
     } => generators::generate_nebula_ca(
-      &name,
+      name,
       Path::new(&public),
       Path::new(&private),
       days.unwrap_or(3650),
@@ -446,8 +444,8 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
     } => generators::generate_nebula_cert(
       Path::new(&ca_public),
       Path::new(&ca_private),
-      &name,
-      &ip,
+      name,
+      ip,
       Path::new(&public),
       Path::new(&private),
       renew.unwrap_or(false),
@@ -497,7 +495,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
       Path::new(&ca_private),
       Path::new(&public),
       Path::new(&private),
-      &user,
+      user,
       renew.unwrap_or(false),
     ),
     Generation::Env {
@@ -550,7 +548,7 @@ pub fn run_generate_spec(cmd: &Generation) -> CrylResult<()> {
       arguments: ScriptArgs { name, text, renew },
     } => generators::generate_script(
       Path::new(&name),
-      &text,
+      text,
       renew.unwrap_or(false),
     ),
     Generation::Sops {
@@ -586,10 +584,10 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
     } => exporters::export_copy(Path::new(&from), Path::new(&to)),
     Export::Vault {
       arguments: VaultExportArgs { path },
-    } => exporters::export_vault(&path),
+    } => exporters::export_vault(path),
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
-    } => exporters::export_vault_file(&path, &file),
+    } => exporters::export_vault_file(path, file),
   }
 }
 
@@ -599,78 +597,76 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
       from,
       to,
       allow_fail,
-    } => importers::import_copy(&from, &to, *allow_fail),
+    } => importers::import_copy(from, to, *allow_fail),
     ImportCommands::Vault { path, allow_fail } => {
-      importers::import_vault(&path, *allow_fail)
+      importers::import_vault(path, *allow_fail)
     }
     ImportCommands::VaultFile {
       path,
       file,
       allow_fail,
-    } => importers::import_vault_file(&path, &file, *allow_fail),
+    } => importers::import_vault_file(path, file, *allow_fail),
   }
 }
 
 pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
   match cmd {
     GenerateCommands::Copy { from, to, renew } => {
-      generators::generate_copy(&from, &to, *renew)
+      generators::generate_copy(from, to, *renew)
     }
     GenerateCommands::Text { name, text, renew } => {
-      generators::generate_text(&name, &text, *renew)
+      generators::generate_text(name, text, *renew)
     }
     GenerateCommands::Json {
       name,
       in_format,
       data,
       renew,
-    } => generators::generate_json(&name, &in_format, &data, *renew),
+    } => generators::generate_json(name, in_format, data, *renew),
     GenerateCommands::Yaml {
       name,
       in_format,
       data,
       renew,
-    } => generators::generate_yaml(&name, &in_format, &data, *renew),
+    } => generators::generate_yaml(name, in_format, data, *renew),
     GenerateCommands::Toml {
       name,
       in_format,
       data,
       renew,
-    } => generators::generate_toml(&name, &in_format, &data, *renew),
+    } => generators::generate_toml(name, in_format, data, *renew),
     GenerateCommands::Id {
       name,
       length,
       renew,
-    } => generators::generate_id(&name, *length, *renew),
+    } => generators::generate_id(name, *length, *renew),
     GenerateCommands::Key {
       name,
       length,
       renew,
-    } => generators::generate_key(&name, *length, *renew),
+    } => generators::generate_key(name, *length, *renew),
     GenerateCommands::Pin {
       name,
       length,
       renew,
-    } => generators::generate_pin(&name, *length, *renew),
+    } => generators::generate_pin(name, *length, *renew),
     GenerateCommands::Password {
       public,
       private,
       length,
       renew,
-    } => generators::generate_password(&public, &private, *length, *renew),
+    } => generators::generate_password(public, private, *length, *renew),
     GenerateCommands::PasswordCrypt3 {
       public,
       private,
       length,
       renew,
-    } => {
-      generators::generate_password_crypt3(&public, &private, *length, *renew)
-    }
+    } => generators::generate_password_crypt3(public, private, *length, *renew),
     GenerateCommands::AgeKey {
       public,
       private,
       renew,
-    } => generators::generate_age_key(&public, &private, *renew),
+    } => generators::generate_age_key(public, private, *renew),
     GenerateCommands::SshKey {
       name,
       public,
@@ -678,9 +674,9 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       password,
       renew,
     } => generators::generate_ssh_key(
-      &name,
-      &public,
-      &private,
+      name,
+      public,
+      private,
       password.as_deref(),
       *renew,
     ),
@@ -688,7 +684,7 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       public,
       private,
       renew,
-    } => generators::generate_wireguard_key(&public, &private, *renew),
+    } => generators::generate_wireguard_key(public, private, *renew),
     GenerateCommands::KeySplit {
       key,
       prefix,
@@ -696,14 +692,14 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       shares,
       renew,
     } => {
-      generators::generate_key_split(&key, &prefix, *threshold, *shares, *renew)
+      generators::generate_key_split(key, prefix, *threshold, *shares, *renew)
     }
     GenerateCommands::KeyCombine {
       shares,
       key,
       threshold,
       renew,
-    } => generators::generate_key_combine(&shares, &key, *threshold, *renew),
+    } => generators::generate_key_combine(shares, key, *threshold, *renew),
     GenerateCommands::TlsRoot {
       common_name,
       organization,
@@ -714,11 +710,11 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_root(
-      &common_name,
-      &organization,
-      &config,
-      &private,
-      &public,
+      common_name,
+      organization,
+      config,
+      private,
+      public,
       *pathlen,
       *days,
       *renew,
@@ -738,16 +734,16 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_intermediary(
-      &common_name,
-      &organization,
-      &config,
-      &request_config,
-      &private,
-      &request,
-      &ca_public,
-      &ca_private,
-      &serial,
-      &public,
+      common_name,
+      organization,
+      config,
+      request_config,
+      private,
+      request,
+      ca_public,
+      ca_private,
+      serial,
+      public,
       *pathlen,
       *days,
       *renew,
@@ -767,17 +763,17 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_leaf(
-      &common_name,
-      &organization,
-      &sans,
-      &config,
-      &request_config,
-      &private,
-      &request,
-      &ca_public,
-      &ca_private,
-      &serial,
-      &public,
+      common_name,
+      organization,
+      sans,
+      config,
+      request_config,
+      private,
+      request,
+      ca_public,
+      ca_private,
+      serial,
+      public,
       *days,
       *renew,
     ),
@@ -791,11 +787,11 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_rsa_root(
-      &common_name,
-      &organization,
-      &config,
-      &private,
-      &public,
+      common_name,
+      organization,
+      config,
+      private,
+      public,
       *pathlen,
       *days,
       *renew,
@@ -815,16 +811,16 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_rsa_intermediary(
-      &common_name,
-      &organization,
-      &config,
-      &request_config,
-      &private,
-      &request,
-      &ca_public,
-      &ca_private,
-      &serial,
-      &public,
+      common_name,
+      organization,
+      config,
+      request_config,
+      private,
+      request,
+      ca_public,
+      ca_private,
+      serial,
+      public,
       *pathlen,
       *days,
       *renew,
@@ -844,22 +840,22 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       days,
       renew,
     } => generators::generate_tls_rsa_leaf(
-      &common_name,
-      &organization,
-      &sans,
-      &config,
-      &request_config,
-      &private,
-      &request,
-      &ca_public,
-      &ca_private,
-      &serial,
-      &public,
+      common_name,
+      organization,
+      sans,
+      config,
+      request_config,
+      private,
+      request,
+      ca_public,
+      ca_private,
+      serial,
+      public,
       *days,
       *renew,
     ),
     GenerateCommands::TlsDhparam { name, renew } => {
-      generators::generate_tls_dhparam(&name, *renew)
+      generators::generate_tls_dhparam(name, *renew)
     }
     GenerateCommands::NebulaCa {
       name,
@@ -867,9 +863,7 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       private,
       days,
       renew,
-    } => {
-      generators::generate_nebula_ca(&name, &public, &private, *days, *renew)
-    }
+    } => generators::generate_nebula_ca(name, public, private, *days, *renew),
     GenerateCommands::NebulaCert {
       ca_public,
       ca_private,
@@ -879,19 +873,13 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       private,
       renew,
     } => generators::generate_nebula_cert(
-      &ca_public,
-      &ca_private,
-      &name,
-      &ip,
-      &public,
-      &private,
-      *renew,
+      ca_public, ca_private, name, ip, public, private, *renew,
     ),
     GenerateCommands::CockroachCa {
       public,
       private,
       renew,
-    } => generators::generate_cockroach_ca(&public, &private, *renew),
+    } => generators::generate_cockroach_ca(public, private, *renew),
     GenerateCommands::CockroachNodeCert {
       ca_public,
       ca_private,
@@ -900,12 +888,7 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       hosts,
       renew,
     } => generators::generate_cockroach_node_cert(
-      &ca_public,
-      &ca_private,
-      &public,
-      &private,
-      &hosts,
-      *renew,
+      ca_public, ca_private, public, private, hosts, *renew,
     ),
     GenerateCommands::CockroachClientCert {
       ca_public,
@@ -915,32 +898,27 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       user,
       renew,
     } => generators::generate_cockroach_client_cert(
-      &ca_public,
-      &ca_private,
-      &public,
-      &private,
-      &user,
-      *renew,
+      ca_public, ca_private, public, private, user, *renew,
     ),
     GenerateCommands::Env {
       name,
       format,
       vars,
       renew,
-    } => generators::generate_env(&name, &format, &vars, *renew),
+    } => generators::generate_env(name, format, vars, *renew),
     GenerateCommands::Mustache {
       name,
       format,
       variables_and_template,
       renew,
     } => generators::generate_mustache(
-      &name,
-      &format,
-      &variables_and_template,
+      name,
+      format,
+      variables_and_template,
       *renew,
     ),
     GenerateCommands::Script { name, text, renew } => {
-      generators::generate_script(&name, &text, *renew)
+      generators::generate_script(name, text, *renew)
     }
     GenerateCommands::Sops {
       age,
@@ -949,18 +927,18 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       format,
       values,
       renew,
-    } => generators::generate_sops(
-      &age, &public, &private, &format, &values, *renew,
-    ),
+    } => {
+      generators::generate_sops(age, public, private, format, values, *renew)
+    }
   }
 }
 
 pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
   match cmd {
-    ExportCommands::Copy { from, to } => exporters::export_copy(&from, &to),
-    ExportCommands::Vault { path } => exporters::export_vault(&path),
+    ExportCommands::Copy { from, to } => exporters::export_copy(from, to),
+    ExportCommands::Vault { path } => exporters::export_vault(path),
     ExportCommands::VaultFile { path, file } => {
-      exporters::export_vault_file(&path, &file)
+      exporters::export_vault_file(path, file)
     }
   }
 }

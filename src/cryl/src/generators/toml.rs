@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::common::{deserialize, save_atomic, serialize, CrylResult, Format};
+use crate::common::{CrylResult, Format, deserialize, save_atomic, serialize};
 
 /// Generate a TOML file by converting data from one format to TOML
 ///

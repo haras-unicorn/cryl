@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{read_file_if_exists, save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, read_file_if_exists, save_atomic};
 
 /// Generate a Nebula CA (certificate + key)
 ///

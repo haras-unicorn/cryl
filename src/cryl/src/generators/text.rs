@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::common::{save_atomic, CrylResult};
+use crate::common::{CrylResult, save_atomic};
 
 /// Write a text file as part of generation
 ///

@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use crate::common::{
-  build_leaf_final_config, build_leaf_request_config, generate_csr,
-  generate_private_key, parse_sans, save_private_key, save_public_file,
-  should_skip_generation, sign_certificate, CrylResult, TlsAlgorithm,
+  CrylResult, TlsAlgorithm, build_leaf_final_config, build_leaf_request_config,
+  generate_csr, generate_private_key, parse_sans, save_private_key,
+  save_public_file, should_skip_generation, sign_certificate,
 };
 
 /// Generate a TLS Leaf certificate (key + CSR + signed cert) using EC algorithm
@@ -87,8 +87,8 @@ pub fn generate_tls_leaf(
 mod tests {
   use super::*;
   use crate::common::{
-    build_root_config, generate_private_key, generate_self_signed_cert,
-    save_private_key, save_public_file, TlsAlgorithm,
+    TlsAlgorithm, build_root_config, generate_private_key,
+    generate_self_signed_cert, save_private_key, save_public_file,
   };
   use std::os::unix::fs::PermissionsExt;
   use tempfile::TempDir;
@@ -157,8 +157,10 @@ mod tests {
     assert!(request_config_content.contains("DNS.1 = example.com"));
     assert!(request_config_content.contains("DNS.2 = www.example.com"));
     assert!(request_config_content.contains("IP.1 = 10.0.0.1"));
-    assert!(request_config_content
-      .contains("extendedKeyUsage = serverAuth,clientAuth"));
+    assert!(
+      request_config_content
+        .contains("extendedKeyUsage = serverAuth,clientAuth")
+    );
     assert!(request_config_content.contains("critical,digitalSignature"));
 
     // Check final config

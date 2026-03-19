@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// Generate a WireGuard key pair and save public + private keys
 ///

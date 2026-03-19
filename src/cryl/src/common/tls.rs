@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// TLS key algorithm types
 #[derive(Clone, Copy, Debug, PartialEq)]

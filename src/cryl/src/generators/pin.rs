@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::common::{generate_random_digits, save_atomic, CrylResult};
+use crate::common::{CrylResult, generate_random_digits, save_atomic};
 
 /// Generate a numeric PIN and save it to a file
 ///
