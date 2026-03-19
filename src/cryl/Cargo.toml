@@ -5,6 +5,7 @@ description = "Secret generation tool"
 repository = "https://github.com/haras-unicorn/cryl"
 authors = ["haras-unicorn <github@haras-unicorn.net>"]
 license-file = "../../LICENSE.md"
+readme = "../../README.md"
 edition = "2024"
 
 [dependencies]
