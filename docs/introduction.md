@@ -51,13 +51,6 @@ following arguments will be taken into account:
 - `--tools: list<string> = []`- additional list of tool binaries that cryl is
   allowed to access via PATH
 - `--allow-net`- allow network while running
-- `--timeout: int = (1000 * 60 * 60)`- maximum allowed runtime in seconds
-- `--max-mem: int = (1024 * 1024 * 128)`- maximum allowed memory while running
-  in bytes
-- `--max-tasks: int = 64`- maximum allowed tasks while running
-- `--max-file-size: int = (1024 * 1024 * 128)`- maximum allowed generated file
-  size while running in bytes
-- `--max-open-files: int = 1024`- maximum allowed open files while running
 
 When not in a sandbox, cryl will take these arguments into account:
 
