@@ -323,7 +323,7 @@ Algorithm: RSA 4096. 🍃
 
 Generates an OpenSSL Diffie-Hellman parameters file with `2048` bits.
 
-- Type: `openssl-dhparam`
+- Type: `tls-dhparam`
 - Arguments:
   - `name` (`path`): Path to the file to be generated.
   - `renew` (`boolean`, `= false`): Whether to overwrite the parameters file if
