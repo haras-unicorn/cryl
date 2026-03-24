@@ -21,3 +21,5 @@ ignoreWords:
   - cachix
   - makeself
   - println
+  - nixpkgs
+  - sandboxing

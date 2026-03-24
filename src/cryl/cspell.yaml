@@ -27,3 +27,4 @@ words:
   - tmpfs
   - chdir
   - libargon
+  - nixpkgs
