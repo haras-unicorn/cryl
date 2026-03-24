@@ -18,9 +18,6 @@ pub enum CrylError {
   #[error("TOML deserialization error: {0}")]
   TomlDeserialization(#[from] toml::de::Error),
 
-  #[error("Invalid specification: {message}")]
-  InvalidSpec { message: String },
-
   #[error("Tool execution failed: {tool} exited with {exit_code}")]
   ToolExecution {
     tool: String,
@@ -39,9 +36,6 @@ pub enum CrylError {
 
   #[error("Export failed: {exporter} - {message}")]
   Export { exporter: String, message: String },
-
-  #[error("Tool not found: {0}")]
-  ToolNotFound(String),
 
   #[error("Invalid format: {0}")]
   InvalidFormat(String),

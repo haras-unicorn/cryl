@@ -217,19 +217,13 @@ rec {
                       .release-plz.toml
                   fi
 
-                  if [[ -n "''${NIX_BUILD_TOP:-}" ]]; then
-                    delta \
-                      <(cat ./assets/schema.json) \
-                      <(${lib.getExe self.packages.${system}.${name}} schema)
-                  else
+                  if [[ -z "''${NIX_BUILD_TOP:-}" ]]; then
                     cargo clippy -- -D warnings
+                    cargo test
                     delta \
                       <(cat ./assets/schema.json) \
                       <(cargo run --quiet --bin ${name} -- schema)
                   fi
-                '';
-                test = ''
-                  cargo test
                 '';
               };
 

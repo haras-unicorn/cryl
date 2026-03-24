@@ -106,8 +106,6 @@ mod tests {
   #[test]
   fn test_generate_password_argon2_length() -> anyhow::Result<()> {
     let temp = TempDir::new().unwrap();
-    let public_path = temp.path().join("public");
-    let private_path = temp.path().join("private");
 
     // Test different lengths
     for length in [8, 12, 24, 32] {
