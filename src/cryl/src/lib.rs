@@ -9,6 +9,10 @@
 #![deny(clippy::todo)]
 #![deny(clippy::unreachable)]
 #![deny(clippy::allow_attributes_without_reason)]
+#![allow(
+  clippy::too_many_arguments,
+  reason = "Leaving for a future refactor with importer/exporter/generator traits"
+)]
 
 mod common;
 mod exporters;

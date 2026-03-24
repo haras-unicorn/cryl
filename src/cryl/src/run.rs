@@ -4,8 +4,6 @@ use crate::dispatch::*;
 use crate::manifest::Manifest;
 use crate::schema::*;
 use crate::versions::tool_versions;
-use crate::{exporters, generators, importers};
-use clap::Parser;
 use schemars::schema_for;
 use std::io::{self, Read};
 use std::path::Path;
@@ -86,7 +84,7 @@ fn run(
   }
 
   // Create manifest if not disabled
-  let mut manifest = if common.no_manifest {
+  let manifest = if common.no_manifest {
     None
   } else {
     Some(Manifest::new(spec_content, spec_format))
@@ -159,7 +157,7 @@ fn run_sandbox(
   sandbox: &SandboxArgs,
   spec_path: Option<&Path>,
   spec_content: &str,
-  spec_format: Format,
+  _spec_format: Format,
 ) -> CrylResult<()> {
   use std::process::Command;
 

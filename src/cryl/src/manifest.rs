@@ -1,4 +1,4 @@
-use crate::common::{CrylError, CrylResult, Format, serialize};
+use crate::common::{CrylResult, Format, serialize};
 use crate::versions::{cryl_version, tool_version};
 use std::collections::HashMap;
 use std::path::Path;
@@ -118,21 +118,6 @@ impl Manifest {
     let content = serialize(self, format)?;
     std::fs::write(&filename, content)?;
     Ok(())
-  }
-}
-
-/// Extension trait for Format to get file extension
-trait FormatExt {
-  fn extension(&self) -> &'static str;
-}
-
-impl FormatExt for Format {
-  fn extension(&self) -> &'static str {
-    match self {
-      Format::Json => "json",
-      Format::Yaml => "yaml",
-      Format::Toml => "toml",
-    }
   }
 }
 

@@ -83,17 +83,6 @@ pub fn serialize<T: serde::Serialize>(
   }
 }
 
-/// Deserialize from file path
-pub fn deserialize_from_file<T: serde::de::DeserializeOwned, P: AsRef<Path>>(
-  path: P,
-) -> CrylResult<T> {
-  let path = path.as_ref();
-  let format = Format::detect_from_path(path)?;
-
-  let content = std::fs::read_to_string(path)?;
-  deserialize(&content, format)
-}
-
 /// Serialize to file
 pub fn serialize_to_file<T: serde::Serialize, P: AsRef<Path>>(
   value: &T,
