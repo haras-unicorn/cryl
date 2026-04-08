@@ -218,4 +218,33 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_ssh_key_contains_trailing_newline() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("ssh_key.pub");
+    let private_path = temp.path().join("ssh_key");
+
+    generate_ssh_key(
+      "test@example.com",
+      &public_path,
+      &private_path,
+      None,
+      true,
+    )?;
+
+    let public_content = std::fs::read_to_string(&public_path)?;
+    let private_content = std::fs::read_to_string(&private_path)?;
+
+    assert!(
+      private_content.ends_with('\n'),
+      "Missing trailing newline in private part"
+    );
+    assert!(
+      public_content.ends_with('\n'),
+      "Missing trailing newline in public part"
+    );
+
+    Ok(())
+  }
 }

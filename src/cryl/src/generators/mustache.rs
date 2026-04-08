@@ -46,10 +46,7 @@ pub fn generate_mustache(
       value
     };
 
-    // Trim whitespace (matching nushell implementation)
-    let trimmed = raw_value.trim();
-
-    context.insert(key, trimmed.to_string());
+    context.insert(key, raw_value);
   }
 
   // Parse and render the template
@@ -114,7 +111,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_mustache_trims_whitespace() {
+  fn test_generate_mustache_does_not_trim_whitespace() {
     let temp = TempDir::new().unwrap();
     let input_path = temp.path().join("input.json");
     let output_path = temp.path().join("output.txt");
@@ -122,7 +119,7 @@ mod tests {
     let input = serde_json::json!({
       "template": "Value: '{{value}}'",
       "variables": {
-        "value": "  trimmed  "
+        "value": "  not trimmed  "
       }
     });
     fs::write(&input_path, input.to_string()).unwrap();
@@ -130,7 +127,7 @@ mod tests {
     generate_mustache(&output_path, "json", &input_path, false).unwrap();
 
     let content = fs::read_to_string(&output_path).unwrap();
-    assert_eq!(content, "Value: 'trimmed'");
+    assert_eq!(content, "Value: '  not trimmed  '");
   }
 
   #[test]

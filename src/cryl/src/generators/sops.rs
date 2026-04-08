@@ -19,8 +19,8 @@ use crate::common::{
 ///
 /// # Description
 /// Reads key-value pairs from the specified file. For each value, if it exists as a
-/// file path, reads the file content; otherwise uses the value directly. Values are
-/// trimmed and then output as a YAML file. The YAML is then encrypted using SOPS
+/// file path, reads the file content; otherwise uses the value directly. Values are then
+/// output as a YAML file. The YAML is then encrypted using SOPS
 /// with the specified Age recipient(s) and saved as the public file.
 pub fn generate_sops(
   age: &Path,
@@ -42,7 +42,7 @@ pub fn generate_sops(
   let values_content = std::fs::read_to_string(values)?;
   let values: HashMap<String, String> = deserialize(&values_content, format)?;
 
-  // Process each value: check if it's a file path, trim whitespace
+  // Process each value: check if it's a file path
   let mut processed: HashMap<String, String> = HashMap::new();
   for (key, value) in values {
     // Check if value is a file path and read it if so
@@ -52,9 +52,7 @@ pub fn generate_sops(
       value
     };
 
-    // Trim whitespace (matching nushell implementation)
-    let trimmed = raw_value.trim();
-    processed.insert(key, trimmed.to_string());
+    processed.insert(key, raw_value);
   }
 
   // Serialize to YAML for the private file
@@ -197,7 +195,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_sops_trims_whitespace() -> anyhow::Result<()> {
+  fn test_generate_sops_does_not_trim_whitespace() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
     let age_path = temp.path().join("age.key");
     let age_public_path = temp.path().join("age_public.key");
@@ -226,8 +224,8 @@ mod tests {
     // Check that whitespace is trimmed
     let private_content = fs::read_to_string(&private_path)?;
     assert!(private_content.contains("KEY:"));
-    // The value should be trimmed, so "  value with spaces  " becomes "value with spaces"
-    assert!(!private_content.contains("\"  value with spaces  \""));
+    // The value should not be trimmed
+    assert!(private_content.contains("'  value with spaces  '"));
 
     Ok(())
   }

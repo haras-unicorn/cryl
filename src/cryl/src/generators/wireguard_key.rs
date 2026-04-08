@@ -26,7 +26,6 @@ pub fn generate_wireguard_key(
   }
 
   let private_content = String::from_utf8_lossy(&private_output.stdout);
-  let private_key = private_content.trim();
 
   // Generate public key by piping private key to wg pubkey
   let mut public_child = Command::new("wg")
@@ -38,7 +37,7 @@ pub fn generate_wireguard_key(
   // Write private key to stdin of the child process
   if let Some(ref mut stdin) = public_child.stdin {
     use std::io::Write;
-    stdin.write_all(private_key.as_bytes())?;
+    stdin.write_all(private_content.as_bytes())?;
     // stdin is dropped here when the scope ends, closing the pipe
   }
 
@@ -53,13 +52,12 @@ pub fn generate_wireguard_key(
   }
 
   let public_content = String::from_utf8_lossy(&public_result.stdout);
-  let public_key = public_content.trim();
 
   // Save private key with private permissions (600)
-  save_atomic(private, private_key.as_bytes(), renew, false)?;
+  save_atomic(private, private_content.as_bytes(), renew, false)?;
 
   // Save public key with public permissions (644)
-  save_atomic(public, public_key.as_bytes(), renew, true)?;
+  save_atomic(public, public_content.as_bytes(), renew, true)?;
 
   Ok(())
 }
@@ -82,22 +80,20 @@ mod tests {
     assert!(public_path.exists());
     assert!(private_path.exists());
 
-    // Check private key content - should be 44 chars base64 (trimmed)
+    // Check private key content - should be 44 chars base64
     let private_content = std::fs::read_to_string(&private_path)?;
-    let private_trimmed = private_content.trim();
-    assert_eq!(private_trimmed.len(), 44);
+    assert_eq!(private_content.len(), 45);
     // WireGuard keys are base64 encoded, so should only contain valid chars
-    assert!(private_trimmed.chars().all(|c| {
-      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='
+    assert!(private_content.chars().all(|c| {
+      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=' || c == '\n'
     }));
 
-    // Check public key content - should be 44 chars base64 (trimmed)
+    // Check public key content - should be 44 chars base64
     let public_content = std::fs::read_to_string(&public_path)?;
-    let public_trimmed = public_content.trim();
-    assert_eq!(public_trimmed.len(), 44);
+    assert_eq!(public_content.len(), 45);
     // WireGuard public keys are also base64 encoded
-    assert!(public_trimmed.chars().all(|c| {
-      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='
+    assert!(public_content.chars().all(|c| {
+      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=' || c == '\n'
     }));
 
     // Check permissions - private should be 600
@@ -151,9 +147,9 @@ mod tests {
     let public_content = std::fs::read_to_string(&public_path)?;
     let private_content = std::fs::read_to_string(&private_path)?;
 
-    // Should contain WireGuard key content now (base64, 44 chars trimmed)
-    assert_eq!(private_content.trim().len(), 44);
-    assert_eq!(public_content.trim().len(), 44);
+    // Should contain WireGuard key content now (base64, 44 chars)
+    assert_eq!(private_content.len(), 45);
+    assert_eq!(public_content.len(), 45);
 
     Ok(())
   }

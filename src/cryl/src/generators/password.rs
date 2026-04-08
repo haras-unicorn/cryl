@@ -63,7 +63,6 @@ pub fn generate_password(
   }
 
   let hash = String::from_utf8_lossy(&argon2_output.stdout);
-  let hash = hash.trim();
 
   // Save plaintext password to private path (private permissions)
   crate::common::save_atomic(private, password.as_bytes(), renew, false)?;

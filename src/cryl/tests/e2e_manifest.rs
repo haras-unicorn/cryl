@@ -313,7 +313,7 @@ arguments.length = 8
     fs::read_to_string(temp_dir.path().join("test-id")).unwrap();
   use sha2::{Digest, Sha256};
   let mut hasher = Sha256::new();
-  hasher.update(actual_content.trim().as_bytes());
+  hasher.update(actual_content.as_bytes());
   let expected_hash = format!("{:x}", hasher.finalize());
   assert_eq!(
     file_hash, expected_hash,

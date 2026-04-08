@@ -39,11 +39,8 @@ pub fn generate_env(
       value
     };
 
-    // Trim whitespace
-    let trimmed = raw_value.trim();
-
     // Escape special characters: backslash, newline, double quote
-    let escaped = trimmed
+    let escaped = raw_value
       .replace('\\', "\\\\")
       .replace('\n', "\\n")
       .replace('\r', "\\r")
@@ -130,7 +127,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_env_trims_whitespace() {
+  fn test_generate_env_does_not_trim_whitespace() {
     let temp = TempDir::new().unwrap();
     let vars_path = temp.path().join("vars.json");
     let env_path = temp.path().join(".env");
@@ -141,7 +138,7 @@ mod tests {
     generate_env(&env_path, "json", &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
-    assert!(content.contains("KEY=\"value with spaces\""));
+    assert!(content.contains("KEY=\"  value with spaces  \""));
   }
 
   #[test]
