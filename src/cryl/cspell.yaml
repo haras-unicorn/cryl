@@ -28,3 +28,4 @@ words:
   - chdir
   - libargon
   - nixpkgs
+  - libcrypto
