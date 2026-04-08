@@ -111,7 +111,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_mustache_doesnt_trim_whitespace() {
+  fn test_generate_mustache_does_not_trim_whitespace() {
     let temp = TempDir::new().unwrap();
     let input_path = temp.path().join("input.json");
     let output_path = temp.path().join("output.txt");

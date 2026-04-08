@@ -127,7 +127,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_env_doesnt_trim_whitespace() {
+  fn test_generate_env_does_not_trim_whitespace() {
     let temp = TempDir::new().unwrap();
     let vars_path = temp.path().join("vars.json");
     let env_path = temp.path().join(".env");

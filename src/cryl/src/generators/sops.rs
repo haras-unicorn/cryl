@@ -195,7 +195,7 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_sops_doesnt_trim_whitespace() -> anyhow::Result<()> {
+  fn test_generate_sops_does_not_trim_whitespace() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
     let age_path = temp.path().join("age.key");
     let age_public_path = temp.path().join("age_public.key");
