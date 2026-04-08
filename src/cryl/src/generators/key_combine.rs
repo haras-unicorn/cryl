@@ -100,10 +100,9 @@ pub fn generate_key_combine(
 
   // Parse output - the reconstructed key
   let reconstructed_key = String::from_utf8_lossy(&output.stdout);
-  let trimmed_key = reconstructed_key.trim();
 
   // Save the reconstructed key
-  save_atomic(key, trimmed_key.as_bytes(), renew, false)?;
+  save_atomic(key, reconstructed_key.as_bytes(), renew, false)?;
 
   Ok(())
 }
@@ -118,8 +117,8 @@ mod tests {
   fn test_generate_key_combine_success() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
 
-    // First split a key
-    let original_key = "my_super_secret_key_12345";
+    // First split a key with intentional trailing newline to test it doesn't trim somehow
+    let original_key = "my_super_secret_key_12345\n";
     let key_path = temp.path().join("original_key");
     fs::write(&key_path, original_key)?;
 
