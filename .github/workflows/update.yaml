@@ -21,6 +21,7 @@ jobs:
           cargo update
       - uses: peter-evans/create-pull-request@v6
         with:
+          token: UPDATE_TOKEN
           body: Automated flake.lock update.
           branch: ci/update-flake-lock
           commit-message: "chore: update flake.lock"
