@@ -45,7 +45,6 @@ pub fn generate_password_crypt3(
   }
 
   let hash = String::from_utf8_lossy(&mkpasswd_output.stdout);
-  let hash = hash.trim();
 
   // Save plaintext password to private path (private permissions)
   crate::common::save_atomic(private, password.as_bytes(), renew, false)?;
