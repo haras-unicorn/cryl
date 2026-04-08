@@ -11,6 +11,12 @@ use crate::common::{CrylError, CrylResult, save_atomic};
 /// * `key` - Path to save the reconstructed key
 /// * `threshold` - Number of shares required to reconstruct (must match split threshold)
 /// * `renew` - Overwrite destination if it exists
+///
+/// Please note that the original key will be trimmed by key split and
+/// the resulting file will have a trailing newline.
+/// This is because the `ssss` package has a weird behavior of just
+/// trimming the end of the key which is weirder than just trimming the key altogether.
+/// This is common convention and allows for SSH keys to not trigger a libcrypto error.
 pub fn generate_key_combine(
   shares: &str,
   key: &Path,
@@ -117,8 +123,8 @@ mod tests {
   fn test_generate_key_combine_success() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
 
-    // First split a key with intentional trailing newline to test it doesn't trim somehow
-    let original_key = "my_super_secret_key_12345\n";
+    // First split a key
+    let original_key = "  my_super_secret_key_12345\n  \n";
     let key_path = temp.path().join("original_key");
     fs::write(&key_path, original_key)?;
 
@@ -137,7 +143,7 @@ mod tests {
 
     // Verify the reconstructed key matches the original
     let reconstructed = fs::read_to_string(&reconstructed_path)?;
-    assert_eq!(reconstructed, original_key);
+    assert_eq!(reconstructed, format!("{}\n", original_key.trim()));
 
     // Check permissions - should be private (600)
     let metadata = fs::metadata(&reconstructed_path)?;
@@ -171,7 +177,7 @@ mod tests {
 
     // Verify the reconstructed key matches the original
     let reconstructed = fs::read_to_string(&reconstructed_path)?;
-    assert_eq!(reconstructed, original_key);
+    assert_eq!(reconstructed, format!("{}\n", original_key.trim()));
 
     Ok(())
   }
@@ -201,7 +207,7 @@ mod tests {
 
     // Verify the reconstructed key matches the original
     let reconstructed = fs::read_to_string(&reconstructed_path)?;
-    assert_eq!(reconstructed, original_key);
+    assert_eq!(reconstructed, format!("{}\n", original_key.trim()));
 
     Ok(())
   }
@@ -265,7 +271,7 @@ mod tests {
 
     // Content should be the reconstructed key
     let content = fs::read_to_string(&reconstructed_path)?;
-    assert_eq!(content, original_key);
+    assert_eq!(content, format!("{}\n", original_key.trim()));
 
     Ok(())
   }

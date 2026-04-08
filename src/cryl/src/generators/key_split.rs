@@ -12,6 +12,12 @@ use crate::common::{CrylError, CrylResult, save_atomic};
 /// * `threshold` - Minimum number of shares required to reconstruct
 /// * `shares` - Total number of shares to generate
 /// * `renew` - Overwrite destinations if they exist
+///
+/// Please note that the original key will be trimmed and the combined key file
+/// will have a trailing newline.
+/// This is because the `ssss` package has a weird behavior of just
+/// trimming the end of the key which is weirder than just trimming the key altogether.
+/// This is common convention and allows for SSH keys to not trigger a libcrypto error.
 pub fn generate_key_split(
   key: &Path,
   prefix: &str,
@@ -43,6 +49,9 @@ pub fn generate_key_split(
 
   // Read the key content
   let key_content = fs::read_to_string(key)?;
+
+  // Trim key content because otherwise `ssss` just trims end which is weirder
+  let key_content = key_content.trim();
 
   // Run ssss-split to generate shares
   let mut child = Command::new("ssss-split")
