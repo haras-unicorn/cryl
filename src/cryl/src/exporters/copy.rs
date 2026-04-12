@@ -15,6 +15,9 @@ pub fn export_copy(from: &Path, to: &Path) -> CrylResult<()> {
   let content = std::fs::read(from)?;
 
   // Write to destination
+  if let Some(parent) = to.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
   std::fs::write(to, content)?;
 
   Ok(())

@@ -1,12 +1,14 @@
 # cryl
 
-`cryl` is a high-performance, sandboxed CLI tool for generating, encrypting, and
-managing infrastructure secrets. It allows you to orchestrate the lifecycle of
-secrets—from importing and generation to encrypted export—using a declarative,
-versioned specification.
+A small tool for generating, encrypting, and managing secrets.
 
-`cryl` is built for security-first environments, automatically isolating
-sensitive generation processes within a `bubblewrap` sandbox.
+`cryl` allows you to create and renew secrets using a specification. The
+specification contains instructions for `cryl` for how to import existing
+secrets, generate or renew secrets and export those secrets in that order.
+
+`cryl` can also be used as a Nix flake module or NixOS test module directly
+integrating with `sops-nix` to allow you to generate all secrets you need for
+all of your NixOS configurations and test them.
 
 ## Installation
 

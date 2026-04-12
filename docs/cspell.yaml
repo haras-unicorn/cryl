@@ -13,3 +13,7 @@ words:
   - subpath
   - subkeys
   - subkey
+  - attrset
+  - nixos
+  - pkgs
+  - sshpass

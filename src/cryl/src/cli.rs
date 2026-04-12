@@ -132,6 +132,10 @@ pub struct SandboxArgs {
   #[arg(long, value_delimiter = ',')]
   pub tools: Vec<String>,
 
+  /// Environment variables to pass through
+  #[arg(long, value_delimiter = ',')]
+  pub env: Vec<String>,
+
   /// Allow network while running
   #[arg(long)]
   pub allow_net: bool,

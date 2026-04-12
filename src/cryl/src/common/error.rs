@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{env::VarError, fmt::Display, path::PathBuf};
 
 use clap_stdin::StdinError;
 use thiserror::Error;
@@ -63,6 +63,9 @@ pub enum CrylError {
 
   #[error("Multiple errors occurred:\n{0}")]
   Multiple(MultiCrylError),
+
+  #[error("Failed to get environment variable: {0}")]
+  EnvVar(#[from] VarError),
 }
 
 impl CrylError {
