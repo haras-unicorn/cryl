@@ -243,4 +243,39 @@ mod tests {
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("TEXT=\"line1\\r\\nline2\""));
   }
+
+  #[test]
+  fn test_generate_env_vars_subdir() {
+    let temp = TempDir::new().unwrap();
+    let vars_path = temp.path().join("subdir").join("vars.json");
+    let env_path = temp.path().join(".env");
+
+    // Create variables file
+    fs::create_dir_all(vars_path.parent().unwrap()).unwrap();
+    fs::write(&vars_path, r#"{"KEY1": "value1", "KEY2": "value2"}"#).unwrap();
+
+    generate_env(&env_path, "json", &vars_path, false).unwrap();
+
+    assert!(env_path.exists());
+    let content = fs::read_to_string(&env_path).unwrap();
+    assert!(content.contains("KEY1=\"value1\""));
+    assert!(content.contains("KEY2=\"value2\""));
+  }
+
+  #[test]
+  fn test_generate_env_env_subdir() {
+    let temp = TempDir::new().unwrap();
+    let vars_path = temp.path().join("vars.json");
+    let env_path = temp.path().join("subdir").join(".env");
+
+    // Create variables file
+    fs::write(&vars_path, r#"{"KEY1": "value1", "KEY2": "value2"}"#).unwrap();
+
+    generate_env(&env_path, "json", &vars_path, false).unwrap();
+
+    assert!(env_path.exists());
+    let content = fs::read_to_string(&env_path).unwrap();
+    assert!(content.contains("KEY1=\"value1\""));
+    assert!(content.contains("KEY2=\"value2\""));
+  }
 }
