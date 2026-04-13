@@ -339,4 +339,78 @@ mod tests {
     let err_msg = format!("{}", result.unwrap_err());
     assert!(err_msg.contains("failed to read share file"));
   }
+
+  #[test]
+  fn test_generate_key_combine_shares_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+
+    // First split a key
+    let original_key = "  my_super_secret_key_12345\n  \n";
+    let key_path = temp.path().join("original_key");
+    fs::write(&key_path, original_key)?;
+
+    let prefix = temp
+      .path()
+      .join("subdir")
+      .join("share")
+      .to_string_lossy()
+      .to_string();
+    crate::generators::generate_key_split(&key_path, &prefix, 2, 3, true)?;
+
+    // Now combine 2 of the 3 shares to reconstruct
+    let share_paths = format!(
+      "{},{}",
+      temp.path().join("subdir").join("share-0").display(),
+      temp.path().join("subdir").join("share-1").display()
+    );
+
+    let reconstructed_path = temp.path().join("reconstructed_key");
+    generate_key_combine(&share_paths, &reconstructed_path, 2, true)?;
+
+    // Verify the reconstructed key matches the original
+    let reconstructed = fs::read_to_string(&reconstructed_path)?;
+    assert_eq!(reconstructed, format!("{}\n", original_key.trim()));
+
+    // Check permissions - should be private (600)
+    let metadata = fs::metadata(&reconstructed_path)?;
+    let perms = metadata.permissions();
+    assert_eq!(perms.mode() & 0o777, 0o600);
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_key_combine_key_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+
+    // First split a key
+    let original_key = "  my_super_secret_key_12345\n  \n";
+    let key_path = temp.path().join("original_key");
+    fs::write(&key_path, original_key)?;
+
+    let prefix = temp.path().join("share").to_string_lossy().to_string();
+    crate::generators::generate_key_split(&key_path, &prefix, 2, 3, true)?;
+
+    // Now combine 2 of the 3 shares to reconstruct
+    let share_paths = format!(
+      "{},{}",
+      temp.path().join("share-0").display(),
+      temp.path().join("share-1").display()
+    );
+
+    let reconstructed_path =
+      temp.path().join("subdir").join("reconstructed_key");
+    generate_key_combine(&share_paths, &reconstructed_path, 2, true)?;
+
+    // Verify the reconstructed key matches the original
+    let reconstructed = fs::read_to_string(&reconstructed_path)?;
+    assert_eq!(reconstructed, format!("{}\n", original_key.trim()));
+
+    // Check permissions - should be private (600)
+    let metadata = fs::metadata(&reconstructed_path)?;
+    let perms = metadata.permissions();
+    assert_eq!(perms.mode() & 0o777, 0o600);
+
+    Ok(())
+  }
 }
