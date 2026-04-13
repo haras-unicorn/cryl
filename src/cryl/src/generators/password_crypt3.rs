@@ -144,4 +144,25 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_password_crypt3_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new().unwrap();
+    let public_path = temp.path().join("subdir1").join("public");
+    let private_path = temp.path().join("subdir2").join("private");
+
+    generate_password_crypt3(&public_path, &private_path, 16, true)?;
+
+    // Check private file contains plaintext password
+    let password = std::fs::read_to_string(&private_path)?;
+    assert_eq!(password.len(), 16);
+    assert!(password.chars().all(|c| c.is_ascii_alphanumeric()));
+
+    // Check public file contains yescrypt hash
+    let hash = std::fs::read_to_string(&public_path)?;
+    // yescrypt hashes start with $y$
+    assert!(hash.starts_with("$y$"));
+
+    Ok(())
+  }
 }
