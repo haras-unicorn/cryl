@@ -145,4 +145,37 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_age_key_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("subdir1").join("age_public.key");
+    let private_path = temp.path().join("subdir2").join("age_private.key");
+
+    generate_age_key(&public_path, &private_path, true)?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check private key content
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(private_content.contains("AGE-SECRET-KEY-"));
+
+    // Check public key content
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert!(public_content.starts_with("age1"));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
+
+    Ok(())
+  }
 }
