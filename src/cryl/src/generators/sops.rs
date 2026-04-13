@@ -446,4 +446,61 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_sops_subdirs() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let age_path = temp.path().join("subdir1").join("age.key");
+    let age_public_path = temp.path().join("subdir2").join("age_public.key");
+    let values_path = temp.path().join("subdir3").join("values.json");
+    let public_path = temp.path().join("subdir4").join("secrets.enc.yaml");
+    let private_path = temp.path().join("subdir5").join("secrets.yaml");
+
+    // Generate age key for testing
+    generate_age_key(&age_public_path, &age_path, true)?;
+
+    // Create values file
+    let values = serde_json::json!({
+      "API_KEY": "secret123",
+      "DB_PASSWORD": "my password"
+    });
+    fs::create_dir_all(values_path.parent().unwrap()).unwrap();
+    fs::write(&values_path, values.to_string())?;
+
+    generate_sops(
+      &age_public_path,
+      &public_path,
+      &private_path,
+      "json",
+      &values_path,
+      true,
+    )?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check private file contains plaintext YAML
+    let private_content = fs::read_to_string(&private_path)?;
+    assert!(private_content.contains("API_KEY:"));
+    assert!(private_content.contains("secret123"));
+    assert!(private_content.contains("DB_PASSWORD:"));
+    assert!(private_content.contains("my password"));
+
+    // Check public file contains encrypted content (SOPS metadata)
+    let public_content = fs::read_to_string(&public_path)?;
+    assert!(public_content.contains("sops:"));
+    assert!(public_content.contains("age:"));
+
+    // Check permissions
+    let private_metadata = fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    let public_metadata = fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
+
+    Ok(())
+  }
 }
