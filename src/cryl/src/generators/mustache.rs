@@ -316,4 +316,47 @@ name = "World"
     let content = fs::read_to_string(&output_path).unwrap();
     assert_eq!(content, "Visible");
   }
+
+  #[test]
+  fn test_generate_mustache_input_subdir() {
+    let temp = TempDir::new().unwrap();
+    let input_path = temp.path().join("subdir").join("input.json");
+    let output_path = temp.path().join("output.txt");
+
+    let input = serde_json::json!({
+      "template": "Hello {{name}}!",
+      "variables": {
+        "name": "World"
+      }
+    });
+    fs::create_dir_all(input_path.parent().unwrap()).unwrap();
+    fs::write(&input_path, input.to_string()).unwrap();
+
+    generate_mustache(&output_path, "json", &input_path, false).unwrap();
+
+    assert!(output_path.exists());
+    let content = fs::read_to_string(&output_path).unwrap();
+    assert_eq!(content, "Hello World!");
+  }
+
+  #[test]
+  fn test_generate_mustache_output_subdir() {
+    let temp = TempDir::new().unwrap();
+    let input_path = temp.path().join("input.json");
+    let output_path = temp.path().join("subdir").join("output.txt");
+
+    let input = serde_json::json!({
+      "template": "Hello {{name}}!",
+      "variables": {
+        "name": "World"
+      }
+    });
+    fs::write(&input_path, input.to_string()).unwrap();
+
+    generate_mustache(&output_path, "json", &input_path, false).unwrap();
+
+    assert!(output_path.exists());
+    let content = fs::read_to_string(&output_path).unwrap();
+    assert_eq!(content, "Hello World!");
+  }
 }
