@@ -164,4 +164,27 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_password_argon2_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new().unwrap();
+    let public_path = temp.path().join("subdir1").join("public");
+    let private_path = temp.path().join("subdir2").join("private");
+
+    generate_password(&public_path, &private_path, 16, true)?;
+
+    // Check private file contains plaintext password
+    let password = std::fs::read_to_string(&private_path)?;
+    assert_eq!(password.len(), 16);
+    assert!(password.chars().all(|c| c.is_ascii_alphanumeric()));
+
+    // Check public file contains argon2 hash
+    let hash = std::fs::read_to_string(&public_path)?;
+    // Argon2 hashes start with $argon2
+    assert!(hash.starts_with("$argon2"));
+    // Should contain the id variant marker
+    assert!(hash.contains("$argon2id$"));
+
+    Ok(())
+  }
 }
