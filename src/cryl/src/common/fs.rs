@@ -27,6 +27,9 @@ pub fn save_atomic<P: AsRef<Path>>(
   let tmp_path = path.with_extension("tmp");
 
   // Write to temp file
+  if let Some(parent) = tmp_path.parent() {
+    fs::create_dir_all(parent)?;
+  }
   fs::write(&tmp_path, content)?;
 
   // Set permissions
@@ -97,6 +100,23 @@ mod tests {
 
     let content = std::fs::read_to_string(&path).unwrap();
     assert_eq!(content, "original");
+  }
+
+  #[test]
+  fn test_save_atomic_subdir() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("subdir").join("test");
+
+    save_atomic(&path, b"content", false, true).unwrap();
+
+    assert!(path.exists());
+    let content = std::fs::read_to_string(&path).unwrap();
+    assert_eq!(content, "content");
+
+    let metadata = std::fs::metadata(&path).unwrap();
+    let perms = metadata.permissions();
+    assert_eq!(perms.mode() & 0o777, 0o644);
   }
 
   #[test]
