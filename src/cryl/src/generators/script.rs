@@ -194,4 +194,27 @@ $"Name: ($name), Age: ($age)" | save {}"#,
     assert!(content.contains("Name: Alice"));
     assert!(content.contains("Age: 30"));
   }
+
+  #[test]
+  fn test_generate_script_subdir() {
+    let temp = TempDir::new().unwrap();
+    let script_path = temp.path().join("subdir").join("test_script.nu");
+    let output_path = temp.path().join("output.txt");
+
+    // Create a script that writes to a file
+    let script_content = format!(
+      r#""Hello, from nu script!" | save {}"#,
+      output_path.display()
+    );
+
+    generate_script(&script_path, &script_content, false).unwrap();
+
+    // Check script file exists
+    assert!(script_path.exists());
+
+    // Check the script was executed (output file should exist)
+    assert!(output_path.exists());
+    let content = fs::read_to_string(&output_path).unwrap();
+    assert!(content.contains("Hello, from nu script!"));
+  }
 }
