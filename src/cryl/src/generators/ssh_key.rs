@@ -22,6 +22,11 @@ pub fn generate_ssh_key(
   let tmp_private = private.with_extension("tmp");
   let tmp_public = private.with_extension("tmp.pub");
 
+  // Create parent because ssh-keygen is unable to do that itself
+  if let Some(parent) = private.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
+
   // Get password content if provided
   let password_str = match password {
     Some(path) => read_file_if_exists(path)?.unwrap_or_default(),
@@ -244,6 +249,46 @@ mod tests {
       public_content.ends_with('\n'),
       "Missing trailing newline in public part"
     );
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_ssh_key_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("subdir1").join("ssh_key.pub");
+    let private_path = temp.path().join("subdir2").join("ssh_key");
+
+    generate_ssh_key(
+      "test@example.com",
+      &public_path,
+      &private_path,
+      None,
+      true,
+    )?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check private key content
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(private_content.contains("OPENSSH PRIVATE KEY"));
+
+    // Check public key content
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert!(public_content.starts_with("ssh-ed25519"));
+    assert!(public_content.contains("test@example.com"));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
 
     Ok(())
   }
