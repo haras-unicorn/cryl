@@ -87,19 +87,45 @@ pub fn serialize<T: serde::Serialize>(
 pub fn serialize_to_file<T: serde::Serialize, P: AsRef<Path>>(
   value: &T,
   path: P,
+  format: Option<Format>,
 ) -> CrylResult<()> {
   let path = path.as_ref();
-  let format = Format::detect_from_path(path)?;
+  let format = if let Some(format) = format {
+    format
+  } else {
+    Format::detect_from_path(path)?
+  };
 
   let content = serialize(value, format)?;
+  if let Some(parent) = path.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
   std::fs::write(path, content)?;
   Ok(())
+}
+
+/// Deserialize from file
+pub fn deserialize_from_file<P: AsRef<Path>, T: serde::de::DeserializeOwned>(
+  path: P,
+  format: Option<Format>,
+) -> CrylResult<T> {
+  let path = path.as_ref();
+  let format = if let Some(format) = format {
+    format
+  } else {
+    Format::detect_from_path(path)?
+  };
+
+  let content = std::fs::read_to_string(path)?;
+
+  Ok(deserialize(&content, format)?)
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
   use serde::{Deserialize, Serialize};
+  use tempfile::TempDir;
 
   #[derive(Debug, Serialize, Deserialize, PartialEq)]
   struct TestData {
@@ -161,6 +187,53 @@ mod tests {
     let serialized = serialize(&data, Format::Toml).unwrap();
     let deserialized: TestData =
       deserialize(&serialized, Format::Toml).unwrap();
+    assert_eq!(data, deserialized);
+  }
+
+  #[test]
+  fn test_serialize_deserialize_success() {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("data.json");
+
+    let data = TestData {
+      name: "test".to_string(),
+      value: 42,
+    };
+
+    serialize_to_file(&data, &path, Some(Format::Json)).unwrap();
+    let deserialized =
+      deserialize_from_file(&path, Some(Format::Json)).unwrap();
+    assert_eq!(data, deserialized);
+  }
+
+  #[test]
+  fn test_serialize_deserialize_detected() {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("data.json");
+
+    let data = TestData {
+      name: "test".to_string(),
+      value: 42,
+    };
+
+    serialize_to_file(&data, &path, None).unwrap();
+    let deserialized = deserialize_from_file(&path, None).unwrap();
+    assert_eq!(data, deserialized);
+  }
+
+  #[test]
+  fn test_serialize_deserialize_subdir() {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("subdir").join("data.json");
+
+    let data = TestData {
+      name: "test".to_string(),
+      value: 42,
+    };
+
+    serialize_to_file(&data, &path, Some(Format::Json)).unwrap();
+    let deserialized =
+      deserialize_from_file(&path, Some(Format::Json)).unwrap();
     assert_eq!(data, deserialized);
   }
 }

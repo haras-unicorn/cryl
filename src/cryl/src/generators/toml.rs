@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::common::{CrylResult, Format, deserialize, save_atomic, serialize};
+use crate::common::{
+  CrylResult, Format, deserialize_from_file, save_atomic, serialize,
+};
 
 /// Generate a TOML file by converting data from one format to TOML
 ///
@@ -18,11 +20,9 @@ pub fn generate_toml(
   // Parse the input format
   let input_format = Format::parse(in_format)?;
 
-  // Read the source data
-  let content = std::fs::read_to_string(data)?;
-
   // Deserialize from input format using serde_json::Value as intermediate
-  let value: serde_json::Value = deserialize(&content, input_format)?;
+  let value: serde_json::Value =
+    deserialize_from_file(&data, Some(input_format))?;
 
   // Serialize to TOML
   let toml_content = serialize(&value, Format::Toml)?;

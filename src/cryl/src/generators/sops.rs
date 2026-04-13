@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::common::{
-  CrylError, CrylResult, Format, deserialize, read_file_if_exists, save_atomic,
-  serialize,
+  CrylError, CrylResult, Format, deserialize_from_file, read_file_if_exists,
+  save_atomic, serialize,
 };
 
 /// Generate SOPS-encrypted secrets from key-value inputs
@@ -39,8 +39,8 @@ pub fn generate_sops(
   let format = Format::parse(format)?;
 
   // Read and deserialize the values file
-  let values_content = std::fs::read_to_string(values)?;
-  let values: HashMap<String, String> = deserialize(&values_content, format)?;
+  let values: HashMap<String, String> =
+    deserialize_from_file(&values, Some(format))?;
 
   // Process each value: check if it's a file path
   let mut processed: HashMap<String, String> = HashMap::new();

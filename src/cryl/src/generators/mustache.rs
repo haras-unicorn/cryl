@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::common::{
-  CrylResult, Format, deserialize, read_file_if_exists, save_atomic,
+  CrylResult, Format, deserialize_from_file, read_file_if_exists, save_atomic,
 };
 
 /// Mustache template input structure
@@ -33,8 +33,8 @@ pub fn generate_mustache(
 ) -> CrylResult<()> {
   // Read and deserialize the input file
   let format = Format::parse(format)?;
-  let input_content = std::fs::read_to_string(variables_and_template)?;
-  let input: MustacheInput = deserialize(&input_content, format)?;
+  let input: MustacheInput =
+    deserialize_from_file(&variables_and_template, Some(format))?;
 
   // Process each variable
   let mut context: HashMap<String, String> = HashMap::new();

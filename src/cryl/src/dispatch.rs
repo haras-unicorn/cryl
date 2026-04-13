@@ -53,7 +53,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-json.json", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_json(
         Path::new(&name),
         "json",
@@ -66,7 +66,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-yaml.yaml", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_yaml(
         Path::new(&name),
         "yaml",
@@ -79,7 +79,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-toml.toml", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_toml(
         Path::new(&name),
         "toml",
@@ -511,7 +511,7 @@ pub fn run_generate_spec(
     } => {
       let vars_path_str = format!("{}-vars.json", name);
       let vars_path = Path::new(&vars_path_str);
-      crate::common::serialize_to_file(&variables, vars_path)?;
+      crate::common::serialize_to_file(&variables, vars_path, None)?;
       generators::generate_env(
         Path::new(&name),
         "json",
@@ -539,7 +539,7 @@ pub fn run_generate_spec(
       };
       let input_path_str = format!("{}-input.json", name);
       let input_path = Path::new(&input_path_str);
-      crate::common::serialize_to_file(&input, input_path)?;
+      crate::common::serialize_to_file(&input, input_path, None)?;
       generators::generate_mustache(
         Path::new(&name),
         "json",
@@ -575,7 +575,7 @@ pub fn run_generate_spec(
       // Serialize secrets to temp file
       let secrets_path_str = format!("{}-secrets.json", private);
       let secrets_path = Path::new(&secrets_path_str);
-      crate::common::serialize_to_file(&secrets, secrets_path)?;
+      crate::common::serialize_to_file(&secrets, secrets_path, None)?;
       generators::generate_sops(
         Path::new(&age),
         Path::new(&public),
