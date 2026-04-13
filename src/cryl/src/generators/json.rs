@@ -228,4 +228,41 @@ features:
     let result = generate_json(&dest_path, "json", &source_path, false);
     assert!(result.is_err());
   }
+
+  #[test]
+  fn test_generate_json_subdir_source() {
+    let temp = TempDir::new().unwrap();
+    let source_path = temp.path().join("subdir").join("source.json");
+    let dest_path = temp.path().join("output.json");
+
+    // Create source JSON file
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
+
+    generate_json(&dest_path, "json", &source_path, false).unwrap();
+
+    assert!(dest_path.exists());
+    let content = fs::read_to_string(&dest_path).unwrap();
+    assert!(content.contains("\"name\""));
+    assert!(content.contains("\"test\""));
+    assert!(content.contains("42"));
+  }
+
+  #[test]
+  fn test_generate_json_subdir_dest() {
+    let temp = TempDir::new().unwrap();
+    let source_path = temp.path().join("source.json");
+    let dest_path = temp.path().join("subdir").join("output.json");
+
+    // Create source JSON file
+    fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
+
+    generate_json(&dest_path, "json", &source_path, false).unwrap();
+
+    assert!(dest_path.exists());
+    let content = fs::read_to_string(&dest_path).unwrap();
+    assert!(content.contains("\"name\""));
+    assert!(content.contains("\"test\""));
+    assert!(content.contains("42"));
+  }
 }
