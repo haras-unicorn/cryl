@@ -18,7 +18,7 @@ pub enum CrylError {
   #[error("TOML deserialization error: {0}")]
   TomlDeserialization(#[from] toml::de::Error),
 
-  #[error("Tool execution failed: {tool} exited with {exit_code}")]
+  #[error("Tool execution failed: {tool} exited with {exit_code}\n{stderr}")]
   ToolExecution {
     tool: String,
     exit_code: i32,
