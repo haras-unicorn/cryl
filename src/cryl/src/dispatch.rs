@@ -1,7 +1,8 @@
 use crate::common::{CrylError, CrylResult};
 use crate::{cli::*, exporters, importers};
 use crate::{generators, schema::*};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
   match cmd {
@@ -36,7 +37,11 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
           file,
           allow_fail,
         },
-    } => importers::import_vault_file(path, file, allow_fail.unwrap_or(false)),
+    } => importers::import_vault_file(
+      path,
+      &PathBuf::from_str(file)?,
+      allow_fail.unwrap_or(false),
+    ),
   }
 }
 
@@ -607,7 +612,7 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
     } => exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir))),
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
-    } => exporters::export_vault_file(path, file),
+    } => exporters::export_vault_file(path, &PathBuf::from_str(file)?),
   }
 }
 
@@ -631,7 +636,9 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
       path,
       file,
       allow_fail,
-    } => importers::import_vault_file(path, file, *allow_fail),
+    } => {
+      importers::import_vault_file(path, &PathBuf::from_str(file)?, *allow_fail)
+    }
   }
 }
 
@@ -966,7 +973,7 @@ pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
       exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir)))
     }
     ExportCommands::VaultFile { path, file } => {
-      exporters::export_vault_file(path, file)
+      exporters::export_vault_file(path, &PathBuf::from_str(file)?)
     }
   }
 }

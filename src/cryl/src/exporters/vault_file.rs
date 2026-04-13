@@ -2,17 +2,31 @@ use crate::common::{CrylError, CrylResult};
 use std::path::Path;
 
 /// Vault file exporter - exports a single file to a Vault KV path
-pub fn export_vault_file(path: &str, file: &str) -> CrylResult<()> {
+pub fn export_vault_file(path: &str, file: &Path) -> CrylResult<()> {
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
   let full_path = format!("{}/current", trimmed_path);
+
+  // Extract last component now to exit early
+  // and because the file might be under a subdirectory
+  let Some(last_component) = file
+    .components()
+    .last()
+    .and_then(|component| component.as_os_str().to_str())
+    .to_owned()
+  else {
+    return Err(CrylError::Import {
+      importer: "vault".to_string(),
+      message: format!("Path is empty"),
+    });
+  };
 
   // Check if source file exists
   let file_path = Path::new(file);
   if !file_path.exists() {
     return Err(CrylError::Export {
       exporter: "vault-file".to_string(),
-      message: format!("Source file not found: {}", file),
+      message: format!("Source file not found: {:?}", file),
     });
   }
 
@@ -24,7 +38,7 @@ pub fn export_vault_file(path: &str, file: &str) -> CrylResult<()> {
     .arg("kv")
     .arg("put")
     .arg(&full_path)
-    .arg(format!("{}={}", file, content))
+    .arg(format!("{}={}", last_component, content))
     .output()
     .map_err(|e| CrylError::Export {
       exporter: "vault-file".to_string(),
@@ -50,7 +64,7 @@ mod tests {
   use super::*;
   use crate::common::vault_container;
   use serial_test::serial;
-  use std::process::Command;
+  use std::{path::PathBuf, process::Command, str::FromStr};
   use tempfile::TempDir;
 
   #[tokio::test]
@@ -65,7 +79,7 @@ mod tests {
     std::fs::write("secret.txt", "my-secret-value")?;
 
     // Export to vault
-    export_vault_file("kv/my-app", "secret.txt")?;
+    export_vault_file("kv/my-app", &PathBuf::from_str("secret.txt")?)?;
 
     // Verify using vault CLI
     let output = Command::new("vault")
@@ -87,7 +101,8 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Try to export non-existent file
-    let result = export_vault_file("kv/my-app", "nonexistent.txt");
+    let result =
+      export_vault_file("kv/my-app", &PathBuf::from_str("nonexistent.txt")?);
     assert!(result.is_err());
 
     let err = result.unwrap_err();
@@ -108,7 +123,7 @@ mod tests {
     std::fs::write("password", "s3cr3t")?;
 
     // Export to nested path
-    export_vault_file("kv/team/project/env", "password")?;
+    export_vault_file("kv/team/project/env", &PathBuf::from_str("password")?)?;
 
     // Verify
     let output = Command::new("vault")
@@ -132,7 +147,7 @@ mod tests {
     std::fs::write("config.yaml", "key: value")?;
 
     // Path with trailing slash should work
-    export_vault_file("kv/my-app/", "config.yaml")?;
+    export_vault_file("kv/my-app/", &PathBuf::from_str("config.yaml")?)?;
 
     // Verify
     let output = Command::new("vault")
@@ -155,7 +170,7 @@ mod tests {
 
     // First export
     std::fs::write("data.txt", "initial")?;
-    export_vault_file("kv/overwrite-app", "data.txt")?;
+    export_vault_file("kv/overwrite-app", &PathBuf::from_str("data.txt")?)?;
 
     // Verify initial value
     let output = Command::new("vault")
@@ -166,7 +181,7 @@ mod tests {
 
     // Update file and re-export
     std::fs::write("data.txt", "updated")?;
-    export_vault_file("kv/overwrite-app", "data.txt")?;
+    export_vault_file("kv/overwrite-app", &PathBuf::from_str("data.txt")?)?;
 
     // Verify updated value
     let output = Command::new("vault")
@@ -174,6 +189,38 @@ mod tests {
       .output()?;
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"]["data.txt"], "updated");
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_export_vault_file_subdir() -> anyhow::Result<()> {
+    let _container = vault_container("vfile-export-subdir-test").await?;
+
+    let dir = PathBuf::from_str("subdir").unwrap();
+    let key = "secret.txt";
+    let file = dir.join(key);
+    let value = "my-secret-value";
+    let path = "kv/my-app";
+
+    let temp_dir = TempDir::new()?;
+    std::env::set_current_dir(&temp_dir)?;
+
+    // Create test file
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    std::fs::write(&file, value)?;
+
+    // Export to vault
+    export_vault_file(path, &file)?;
+
+    // Verify using vault CLI
+    let output = Command::new("vault")
+      .args(["kv", "get", "-format=json", &format!("{path}/current")])
+      .output()?;
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    assert_eq!(json["data"]["data"][key], value);
 
     Ok(())
   }
