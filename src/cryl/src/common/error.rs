@@ -45,6 +45,9 @@ pub enum CrylError {
 
   #[error("Template error: {0}")]
   Template(#[from] mustache::Error),
+
+  #[error("Infallible: {0}")]
+  Infallible(#[from] std::convert::Infallible),
 }
 
 /// Result type alias for cryl operations
