@@ -18,8 +18,17 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
       allow_fail.unwrap_or(false),
     ),
     Import::Vault {
-      arguments: VaultImportArgs { path, allow_fail },
-    } => importers::import_vault(path, allow_fail.unwrap_or(false)),
+      arguments:
+        VaultImportArgs {
+          path,
+          dir,
+          allow_fail,
+        },
+    } => importers::import_vault(
+      path,
+      dir.as_ref().map(|dir| Path::new(dir)),
+      allow_fail.unwrap_or(false),
+    ),
     Import::VaultFile {
       arguments:
         VaultFileImportArgs {
@@ -609,9 +618,15 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
       to,
       allow_fail,
     } => importers::import_copy(from, to, *allow_fail),
-    ImportCommands::Vault { path, allow_fail } => {
-      importers::import_vault(path, *allow_fail)
-    }
+    ImportCommands::Vault {
+      path,
+      dir,
+      allow_fail,
+    } => importers::import_vault(
+      path,
+      dir.as_ref().map(|dir| dir.as_path()),
+      *allow_fail,
+    ),
     ImportCommands::VaultFile {
       path,
       file,

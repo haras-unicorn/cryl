@@ -1,7 +1,16 @@
 use crate::common::{CrylError, CrylResult, save_atomic};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+};
 
 /// Vault importer - imports all files from a Vault KV path
-pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
+/// to a desired directory or current directory if none
+pub fn import_vault(
+  path: &str,
+  dir: Option<&Path>,
+  allow_fail: bool,
+) -> CrylResult<()> {
   // Trim trailing slashes as per Nu script
   let trimmed_path = path.trim_end_matches('/');
 
@@ -105,6 +114,12 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
       }
     };
 
+    let key_str = if let Some(dir) = dir {
+      dir.join(key_str)
+    } else {
+      PathBuf::from_str(key_str)?
+    };
+
     save_atomic(key_str, value_str.as_bytes(), true, false)?;
   }
 
@@ -136,7 +151,7 @@ mod tests {
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
-    import_vault(key, false)?;
+    import_vault(key, None, false)?;
 
     // Check file content is ok
     let result = std::fs::read_to_string(file)?;
@@ -170,7 +185,7 @@ mod tests {
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
-    import_vault(key, false)?;
+    import_vault(key, None, false)?;
 
     // Check first file content is ok
     let result = std::fs::read_to_string(first_file)?;
@@ -191,7 +206,35 @@ mod tests {
     // Test random non-existent key
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
-    import_vault("kv/nonexistent", true)?;
+    import_vault("kv/nonexistent", None, true)?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_import_vault_subdir_with_real_vault() -> anyhow::Result<()> {
+    let _container = vault_container("vault-import-test").await?;
+    let key = "kv/my-app";
+    let key_current = format!("{}/current", key);
+    let file = "secret.txt";
+    let content = "top-secret";
+    let dir = PathBuf::from_str("subdir")?;
+    let dest = dir.join(file);
+
+    // Write test data
+    Command::new("vault")
+      .args(["kv", "put", &key_current, &format!("{file}={content}")])
+      .output()?;
+
+    // Now test import_vault using medusa (which uses Vault API)
+    let temp_dir = TempDir::new()?;
+    std::env::set_current_dir(&temp_dir)?;
+    import_vault(key, Some(&dir), false)?;
+
+    // Check file content is ok
+    let result = std::fs::read_to_string(dest)?;
+    assert_eq!(result, content);
 
     Ok(())
   }

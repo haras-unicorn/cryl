@@ -112,6 +112,8 @@ pub enum Export {
 pub struct VaultImportArgs {
   /// Vault KV path to import from (e.g., "kv/my‑app").
   pub path: String,
+  /// Directory in which to import (default is current directory)
+  pub dir: Option<String>,
   /// If true, missing source does not cause failure.
   pub allow_fail: Option<bool>,
 }
