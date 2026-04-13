@@ -463,6 +463,8 @@ pub struct SopsArgs {
 pub struct VaultExportArgs {
   /// Base Vault KV path (e.g., "kv/my‑app").
   pub path: String,
+  /// Directory from to export (default is current directory)
+  pub dir: Option<String>,
 }
 
 /// Arguments for single‑file Vault KV export.

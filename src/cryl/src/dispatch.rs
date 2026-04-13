@@ -603,8 +603,8 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
       arguments: CopyExportArgs { from, to },
     } => exporters::export_copy(Path::new(&from), Path::new(&to)),
     Export::Vault {
-      arguments: VaultExportArgs { path },
-    } => exporters::export_vault(path),
+      arguments: VaultExportArgs { path, dir },
+    } => exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir))),
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
     } => exporters::export_vault_file(path, file),
@@ -962,7 +962,9 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
 pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
   match cmd {
     ExportCommands::Copy { from, to } => exporters::export_copy(from, to),
-    ExportCommands::Vault { path } => exporters::export_vault(path),
+    ExportCommands::Vault { path, dir } => {
+      exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir)))
+    }
     ExportCommands::VaultFile { path, file } => {
       exporters::export_vault_file(path, file)
     }

@@ -717,6 +717,8 @@ pub enum ExportCommands {
   Vault {
     /// Base vault path
     path: String,
+    /// Directory from which to export (default is current directory)
+    dir: Option<PathBuf>,
   },
 
   /// Export single file to Vault

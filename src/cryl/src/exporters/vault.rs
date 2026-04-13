@@ -1,14 +1,21 @@
 use crate::common::{CrylError, CrylResult};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
-/// Vault exporter - exports all files in current directory to a Vault KV path
-pub fn export_vault(path: &str) -> CrylResult<()> {
+/// Vault exporter - exports all files in provided directory
+/// (default is current directory) to a Vault KV path
+pub fn export_vault(path: &str, dir: Option<&Path>) -> CrylResult<()> {
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
 
+  let dir = if let Some(dir) = dir {
+    dir
+  } else {
+    Path::new(".")
+  };
+
   // Collect all files in current directory
   let mut files = BTreeMap::new();
-  for entry in std::fs::read_dir(".")? {
+  for entry in std::fs::read_dir(dir)? {
     let entry = entry?;
     let path = entry.path();
     if path.is_file() {
@@ -100,7 +107,7 @@ pub fn export_vault(path: &str) -> CrylResult<()> {
 mod tests {
   use crate::common::vault_container;
   use serial_test::serial;
-  use std::process::Command;
+  use std::{path::PathBuf, process::Command, str::FromStr};
   use tempfile::TempDir;
 
   #[tokio::test]
@@ -116,7 +123,7 @@ mod tests {
     std::fs::write("config.yaml", "port: 8080")?;
 
     // Export to vault
-    super::export_vault("kv/my-app")?;
+    super::export_vault("kv/my-app", None)?;
 
     // Verify using vault CLI
     let output = Command::new("vault")
@@ -146,7 +153,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Export from empty directory should succeed
-    super::export_vault("kv/empty-app")?;
+    super::export_vault("kv/empty-app", None)?;
 
     Ok(())
   }
@@ -162,7 +169,7 @@ mod tests {
     std::fs::write("data.txt", "test-data")?;
 
     // Path with trailing slash should work
-    super::export_vault("kv/slash-app/")?;
+    super::export_vault("kv/slash-app/", None)?;
 
     // Verify
     let output = Command::new("vault")
@@ -171,6 +178,49 @@ mod tests {
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"]["data.txt"], "test-data");
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_export_vault_subdir() -> anyhow::Result<()> {
+    let _container = vault_container("vault-export-subdir-test").await?;
+    let dir = PathBuf::from_str("subdir").unwrap();
+    let first_key = "secret.txt";
+    let first_file = dir.join(first_key);
+    let first_content = "top-secret";
+    let second_key = "config.yaml";
+    let second_file = dir.join(second_key);
+    let second_content = "port: 8080";
+    let key = "kv/my-app";
+
+    let temp_dir = TempDir::new()?;
+    std::env::set_current_dir(&temp_dir)?;
+
+    // Create test files
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(first_file, first_content)?;
+    std::fs::write(second_file, second_content)?;
+
+    // Export to vault
+    super::export_vault(key, Some(&dir))?;
+
+    // Verify using vault CLI
+    let output = Command::new("vault")
+      .args(["kv", "get", "-format=json", &format!("{key}/current")])
+      .output()?;
+
+    if !output.status.success() {
+      anyhow::bail!(
+        "vault kv get failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+      );
+    }
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    assert_eq!(json["data"]["data"][first_key], first_content);
+    assert_eq!(json["data"]["data"][second_key], second_content);
 
     Ok(())
   }
