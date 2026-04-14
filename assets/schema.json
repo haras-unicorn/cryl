@@ -1579,6 +1579,13 @@
       "description": "Arguments for Vault KV export.",
       "type": "object",
       "properties": {
+        "dir": {
+          "description": "Directory from to export (default is current directory)",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "path": {
           "description": "Base Vault KV path (e.g., \"kv/my‑app\").",
           "type": "string"
@@ -1639,6 +1646,13 @@
           "description": "If true, missing source does not cause failure.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "dir": {
+          "description": "Directory in which to import (default is current directory)",
+          "type": [
+            "string",
             "null"
           ]
         },
