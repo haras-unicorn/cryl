@@ -29,3 +29,4 @@ words:
   - libargon
   - nixpkgs
   - libcrypto
+  - subdirs
