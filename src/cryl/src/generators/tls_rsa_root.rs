@@ -213,4 +213,64 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_tls_rsa_root_subdirs() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let config_path = temp.path().join("subdir1").join("ca.conf");
+    let private_path = temp.path().join("subdir2").join("ca.key");
+    let public_path = temp.path().join("subdir3").join("ca.crt");
+
+    generate_tls_rsa_root(
+      "Test Root CA",
+      "Test Org",
+      &config_path,
+      &private_path,
+      &public_path,
+      1,
+      3650,
+      true,
+    )?;
+
+    // Check that all files exist
+    assert!(config_path.exists());
+    assert!(private_path.exists());
+    assert!(public_path.exists());
+
+    // Check config content
+    let config_content = std::fs::read_to_string(&config_path)?;
+    assert!(config_content.contains("[req]"));
+    assert!(config_content.contains("CN = Test Root CA"));
+    assert!(config_content.contains("O = Test Org"));
+    assert!(
+      config_content.contains("basicConstraints = critical,CA:true,pathlen:1")
+    );
+    assert!(config_content.contains("keyUsage = critical,keyCertSign,cRLSign"));
+
+    // Check private key content (RSA keys are different format)
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(
+      private_content.contains("BEGIN PRIVATE KEY")
+        || private_content.contains("BEGIN RSA PRIVATE KEY")
+    );
+
+    // Check certificate content
+    let cert_content = std::fs::read_to_string(&public_path)?;
+    assert!(cert_content.contains("BEGIN CERTIFICATE"));
+    assert!(cert_content.contains("END CERTIFICATE"));
+
+    // Check config permissions (644)
+    let config_metadata = std::fs::metadata(&config_path)?;
+    assert_eq!(config_metadata.permissions().mode() & 0o777, 0o644);
+
+    // Check private key permissions (600)
+    let private_metadata = std::fs::metadata(&private_path)?;
+    assert_eq!(private_metadata.permissions().mode() & 0o777, 0o600);
+
+    // Check certificate permissions (644)
+    let public_metadata = std::fs::metadata(&public_path)?;
+    assert_eq!(public_metadata.permissions().mode() & 0o777, 0o644);
+
+    Ok(())
+  }
 }
