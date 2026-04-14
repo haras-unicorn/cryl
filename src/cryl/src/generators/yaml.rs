@@ -22,7 +22,7 @@ pub fn generate_yaml(
 
   // Deserialize from input format using serde_json::Value as intermediate
   let value: serde_json::Value =
-    deserialize_from_file(&data, Some(input_format))?;
+    deserialize_from_file(data, Some(input_format))?;
 
   // Serialize to YAML
   let yaml_content = serialize(&value, Format::Yaml)?;

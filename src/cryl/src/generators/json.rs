@@ -22,7 +22,7 @@ pub fn generate_json(
 
   // Deserialize from input format using serde_json::Value as intermediate
   let value: serde_json::Value =
-    deserialize_from_file(&data, Some(input_format))?;
+    deserialize_from_file(data, Some(input_format))?;
 
   // Serialize to JSON
   let json_content = serialize(&value, Format::Json)?;

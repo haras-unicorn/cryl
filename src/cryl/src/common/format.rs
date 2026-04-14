@@ -118,7 +118,7 @@ pub fn deserialize_from_file<P: AsRef<Path>, T: serde::de::DeserializeOwned>(
 
   let content = std::fs::read_to_string(path)?;
 
-  Ok(deserialize(&content, format)?)
+  deserialize(&content, format)
 }
 
 #[cfg(test)]

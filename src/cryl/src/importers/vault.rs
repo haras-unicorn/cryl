@@ -19,7 +19,7 @@ pub fn import_vault(
   let Some(last_component) = trimmed_path.split("/").last().to_owned() else {
     return Err(CrylError::Import {
       importer: "vault".to_string(),
-      message: format!("Path is empty"),
+      message: "Path is empty".to_string(),
     });
   };
 

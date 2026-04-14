@@ -40,7 +40,7 @@ pub fn generate_sops(
 
   // Read and deserialize the values file
   let values: HashMap<String, String> =
-    deserialize_from_file(&values, Some(format))?;
+    deserialize_from_file(values, Some(format))?;
 
   // Process each value: check if it's a file path
   let mut processed: HashMap<String, String> = HashMap::new();

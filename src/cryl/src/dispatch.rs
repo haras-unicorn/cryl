@@ -27,7 +27,7 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
         },
     } => importers::import_vault(
       path,
-      dir.as_ref().map(|dir| Path::new(dir)),
+      dir.as_ref().map(Path::new),
       allow_fail.unwrap_or(false),
     ),
     Import::VaultFile {
@@ -609,7 +609,7 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
     } => exporters::export_copy(Path::new(&from), Path::new(&to)),
     Export::Vault {
       arguments: VaultExportArgs { path, dir },
-    } => exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir))),
+    } => exporters::export_vault(path, dir.as_ref().map(Path::new)),
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
     } => exporters::export_vault_file(path, &PathBuf::from_str(file)?),
@@ -970,7 +970,7 @@ pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
   match cmd {
     ExportCommands::Copy { from, to } => exporters::export_copy(from, to),
     ExportCommands::Vault { path, dir } => {
-      exporters::export_vault(path, dir.as_ref().map(|dir| Path::new(dir)))
+      exporters::export_vault(path, dir.as_ref().map(Path::new))
     }
     ExportCommands::VaultFile { path, file } => {
       exporters::export_vault_file(path, &PathBuf::from_str(file)?)

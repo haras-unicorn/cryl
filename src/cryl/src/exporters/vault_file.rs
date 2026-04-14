@@ -11,13 +11,13 @@ pub fn export_vault_file(path: &str, file: &Path) -> CrylResult<()> {
   // and because the file might be under a subdirectory
   let Some(last_component) = file
     .components()
-    .last()
+    .next_back()
     .and_then(|component| component.as_os_str().to_str())
     .to_owned()
   else {
     return Err(CrylError::Import {
       importer: "vault".to_string(),
-      message: format!("Path is empty"),
+      message: "Path is empty".to_string(),
     });
   };
 

@@ -22,7 +22,7 @@ pub fn generate_toml(
 
   // Deserialize from input format using serde_json::Value as intermediate
   let value: serde_json::Value =
-    deserialize_from_file(&data, Some(input_format))?;
+    deserialize_from_file(data, Some(input_format))?;
 
   // Serialize to TOML
   let toml_content = serialize(&value, Format::Toml)?;

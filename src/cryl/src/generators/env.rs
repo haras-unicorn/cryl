@@ -27,7 +27,7 @@ pub fn generate_env(
   // Read and deserialize the variables file
   let format = Format::parse(format)?;
   let variables: HashMap<String, String> =
-    deserialize_from_file(&vars, Some(format))?;
+    deserialize_from_file(vars, Some(format))?;
 
   // Process each variable
   let mut lines: Vec<String> = Vec::new();

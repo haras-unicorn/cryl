@@ -34,7 +34,7 @@ pub fn generate_mustache(
   // Read and deserialize the input file
   let format = Format::parse(format)?;
   let input: MustacheInput =
-    deserialize_from_file(&variables_and_template, Some(format))?;
+    deserialize_from_file(variables_and_template, Some(format))?;
 
   // Process each variable
   let mut context: HashMap<String, String> = HashMap::new();
