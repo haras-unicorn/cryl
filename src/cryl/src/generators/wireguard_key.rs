@@ -179,4 +179,45 @@ mod tests {
 
     Ok(())
   }
+
+  #[test]
+  fn test_generate_wireguard_key_subdirs() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("subdir1").join("wg_public.key");
+    let private_path = temp.path().join("subdir2").join("wg_private.key");
+
+    generate_wireguard_key(&private_path, &public_path, true)?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check private key content - should be 44 chars base64
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert_eq!(private_content.len(), 45);
+    // WireGuard keys are base64 encoded, so should only contain valid chars
+    assert!(private_content.chars().all(|c| {
+      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=' || c == '\n'
+    }));
+
+    // Check public key content - should be 44 chars base64
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert_eq!(public_content.len(), 45);
+    // WireGuard public keys are also base64 encoded
+    assert!(public_content.chars().all(|c| {
+      c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=' || c == '\n'
+    }));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
+
+    Ok(())
+  }
 }
