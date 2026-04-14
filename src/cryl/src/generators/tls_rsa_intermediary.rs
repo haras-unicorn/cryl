@@ -111,6 +111,28 @@ mod tests {
     Ok((ca_public, ca_private))
   }
 
+  fn create_test_ca_subdir(
+    temp: &TempDir,
+  ) -> anyhow::Result<(std::path::PathBuf, std::path::PathBuf)> {
+    let ca_config = temp.path().join("ca-subdir1").join("ca.conf");
+    let ca_private = temp.path().join("ca-subdir2").join("ca.key");
+    let ca_public = temp.path().join("ca-subdir3").join("ca.crt");
+
+    let basic_constraints = build_basic_constraints(1);
+    let config_content =
+      build_root_config("Test Root CA", "Test Org", &basic_constraints);
+    save_public_file(&ca_config, &config_content, true)?;
+
+    let private_content = generate_private_key(TlsAlgorithm::Rsa)?;
+    save_private_key(&ca_private, &private_content, true)?;
+
+    let cert_content =
+      generate_self_signed_cert(&ca_private, &ca_config, 3650)?;
+    save_public_file(&ca_public, &cert_content, true)?;
+
+    Ok((ca_public, ca_private))
+  }
+
   #[test]
   fn test_generate_tls_rsa_intermediary_success() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
@@ -290,6 +312,79 @@ mod tests {
 
     let cert_content = std::fs::read_to_string(&public_path)?;
     assert!(cert_content.contains("BEGIN CERTIFICATE"));
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_tls_rsa_intermediary_subdirs() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_public, ca_private) = create_test_ca_subdir(&temp)?;
+
+    let config_path = temp.path().join("subdir1").join("inter.conf");
+    let request_config_path =
+      temp.path().join("subdir2").join("inter_req.conf");
+    let private_path = temp.path().join("subdir3").join("inter.key");
+    let request_path = temp.path().join("subdir4").join("inter.csr");
+    let serial_path = temp.path().join("subdir5").join("serial");
+    let public_path = temp.path().join("subdir6").join("inter.crt");
+
+    generate_tls_rsa_intermediary(
+      "Test Intermediate CA",
+      "Test Org",
+      &config_path,
+      &request_config_path,
+      &private_path,
+      &request_path,
+      &ca_public,
+      &ca_private,
+      &serial_path,
+      &public_path,
+      0,
+      3650,
+      true,
+    )?;
+
+    // Check that all files exist
+    assert!(config_path.exists());
+    assert!(request_config_path.exists());
+    assert!(private_path.exists());
+    assert!(request_path.exists());
+    assert!(serial_path.exists());
+    assert!(public_path.exists());
+
+    // Check config content
+    let config_content = std::fs::read_to_string(&config_path)?;
+    assert!(config_content.contains("CN = Test Intermediate CA"));
+    assert!(
+      config_content.contains("basicConstraints = critical,CA:true,pathlen:0")
+    );
+    assert!(config_content.contains("authorityKeyIdentifier"));
+
+    // Check private key content
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(
+      private_content.contains("BEGIN PRIVATE KEY")
+        || private_content.contains("BEGIN RSA PRIVATE KEY")
+    );
+
+    // Check CSR content
+    let csr_content = std::fs::read_to_string(&request_path)?;
+    assert!(csr_content.contains("BEGIN CERTIFICATE REQUEST"));
+
+    // Check certificate content
+    let cert_content = std::fs::read_to_string(&public_path)?;
+    assert!(cert_content.contains("BEGIN CERTIFICATE"));
+
+    // Check permissions
+    assert_eq!(
+      std::fs::metadata(&private_path)?.permissions().mode() & 0o777,
+      0o600
+    );
+    assert_eq!(
+      std::fs::metadata(&public_path)?.permissions().mode() & 0o777,
+      0o644
+    );
 
     Ok(())
   }
