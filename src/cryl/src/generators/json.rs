@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::common::{CrylResult, Format, deserialize, save_atomic, serialize};
+use crate::common::{
+  CrylResult, Format, deserialize_from_file, save_atomic, serialize,
+};
 
 /// Generate a JSON file by converting data from one format to JSON
 ///
@@ -18,11 +20,9 @@ pub fn generate_json(
   // Parse the input format
   let input_format = Format::parse(in_format)?;
 
-  // Read the source data
-  let content = std::fs::read_to_string(data)?;
-
   // Deserialize from input format using serde_json::Value as intermediate
-  let value: serde_json::Value = deserialize(&content, input_format)?;
+  let value: serde_json::Value =
+    deserialize_from_file(data, Some(input_format))?;
 
   // Serialize to JSON
   let json_content = serialize(&value, Format::Json)?;
@@ -227,5 +227,42 @@ features:
 
     let result = generate_json(&dest_path, "json", &source_path, false);
     assert!(result.is_err());
+  }
+
+  #[test]
+  fn test_generate_json_subdir_source() {
+    let temp = TempDir::new().unwrap();
+    let source_path = temp.path().join("subdir").join("source.json");
+    let dest_path = temp.path().join("output.json");
+
+    // Create source JSON file
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
+
+    generate_json(&dest_path, "json", &source_path, false).unwrap();
+
+    assert!(dest_path.exists());
+    let content = fs::read_to_string(&dest_path).unwrap();
+    assert!(content.contains("\"name\""));
+    assert!(content.contains("\"test\""));
+    assert!(content.contains("42"));
+  }
+
+  #[test]
+  fn test_generate_json_subdir_dest() {
+    let temp = TempDir::new().unwrap();
+    let source_path = temp.path().join("source.json");
+    let dest_path = temp.path().join("subdir").join("output.json");
+
+    // Create source JSON file
+    fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
+
+    generate_json(&dest_path, "json", &source_path, false).unwrap();
+
+    assert!(dest_path.exists());
+    let content = fs::read_to_string(&dest_path).unwrap();
+    assert!(content.contains("\"name\""));
+    assert!(content.contains("\"test\""));
+    assert!(content.contains("42"));
   }
 }

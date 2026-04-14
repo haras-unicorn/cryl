@@ -138,7 +138,7 @@ arguments.length = 16
 
 [[generations]]
 generator = "key"
-arguments.name = "key"
+arguments.name = "./subdir/key"
 arguments.length = 32
 arguments.renew = true
 

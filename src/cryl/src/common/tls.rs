@@ -155,6 +155,11 @@ pub fn sign_certificate(
   let _tmp_suffix = ".tmp";
   let tmp_serial_path = serial_path.with_extension("tmp");
 
+  // Create serial directory because openssl doesn't handle that
+  if let Some(parent) = serial_path.parent() {
+    std::fs::create_dir_all(parent)?;
+  }
+
   // Determine serial args
   let serial_args: Vec<String> = if serial_path.exists() {
     // Copy existing serial file

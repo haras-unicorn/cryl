@@ -18,7 +18,7 @@ pub enum CrylError {
   #[error("TOML deserialization error: {0}")]
   TomlDeserialization(#[from] toml::de::Error),
 
-  #[error("Tool execution failed: {tool} exited with {exit_code}")]
+  #[error("Tool execution failed: {tool} exited with {exit_code}\n{stderr}")]
   ToolExecution {
     tool: String,
     exit_code: i32,
@@ -45,6 +45,9 @@ pub enum CrylError {
 
   #[error("Template error: {0}")]
   Template(#[from] mustache::Error),
+
+  #[error("Infallible: {0}")]
+  Infallible(#[from] std::convert::Infallible),
 }
 
 /// Result type alias for cryl operations

@@ -22,6 +22,14 @@ pub fn generate_nebula_ca(
   let tmp_public = public.as_os_str().to_string_lossy().to_string() + ".tmp";
   let tmp_private = private.as_os_str().to_string_lossy().to_string() + ".tmp";
 
+  // Create parent directories because nebula-cert can't handle that
+  if let Some(public_parent) = public.parent() {
+    std::fs::create_dir_all(public_parent)?;
+  }
+  if let Some(private_parent) = private.parent() {
+    std::fs::create_dir_all(private_parent)?;
+  }
+
   // Calculate duration in hours
   let duration = format!("{}h", days.saturating_mul(24));
 
@@ -207,6 +215,41 @@ mod tests {
     // Both should be valid Nebula certificates
     assert!(public1.contains("-----BEGIN NEBULA CERTIFICATE"));
     assert!(public2.contains("-----BEGIN NEBULA CERTIFICATE"));
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_nebula_subdirs() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("subdir1").join("ca.crt");
+    let private_path = temp.path().join("subdir2").join("ca.key");
+
+    generate_nebula_ca("Test CA", &public_path, &private_path, 3650, true)?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check public certificate content - should be a PEM certificate
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert!(public_content.contains("-----BEGIN NEBULA CERTIFICATE"));
+    assert!(public_content.contains("-----END NEBULA CERTIFICATE"));
+
+    // Check private key content - should be a PEM private key
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(private_content.contains("-----BEGIN NEBULA"));
+    assert!(private_content.contains("-----END NEBULA"));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
 
     Ok(())
   }

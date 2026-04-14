@@ -1,14 +1,30 @@
+use std::path::Path;
+
 use crate::common::{CrylError, CrylResult, save_atomic};
 
 /// Vault file importer - imports a single file from a Vault KV path
 pub fn import_vault_file(
   path: &str,
-  file: &str,
+  file: &Path,
   allow_fail: bool,
 ) -> CrylResult<()> {
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
   let full_path = format!("{}/current", trimmed_path);
+
+  // Extract last component now to exit early
+  // and because the file might be under a subdirectory
+  let Some(last_component) = file
+    .components()
+    .next_back()
+    .and_then(|component| component.as_os_str().to_str())
+    .to_owned()
+  else {
+    return Err(CrylError::Import {
+      importer: "vault".to_string(),
+      message: "Path is empty".to_string(),
+    });
+  };
 
   // Execute vault kv get
   let output = match std::process::Command::new("vault")
@@ -67,7 +83,7 @@ pub fn import_vault_file(
   let file_content = match parsed
     .get("data")
     .and_then(|data| data.get("data"))
-    .and_then(|inner| inner.get(file))
+    .and_then(|inner| inner.get(last_component))
     .and_then(|value| value.as_str())
   {
     Some(content) => content.to_string(),
@@ -77,7 +93,10 @@ pub fn import_vault_file(
       }
       return Err(CrylError::Import {
         importer: "vault-file".to_string(),
-        message: format!("File '{}' not found in Vault path: {}", file, path),
+        message: format!(
+          "File '{}' not found in Vault path: {}",
+          last_component, path
+        ),
       });
     }
   };
@@ -93,7 +112,9 @@ mod tests {
   use crate::common::vault_container;
   use base64::Engine;
   use serial_test::serial;
-  use std::{os::unix::fs::PermissionsExt, process::Command};
+  use std::{
+    os::unix::fs::PermissionsExt, path::PathBuf, process::Command, str::FromStr,
+  };
   use tempfile::TempDir;
 
   #[tokio::test]
@@ -116,7 +137,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Test import
-    import_vault_file("kv/test-app", "secret.txt", false)?;
+    import_vault_file("kv/test-app", &PathBuf::from_str("secret.txt")?, false)?;
 
     // Verify file was created
     assert!(std::path::Path::new("secret.txt").exists());
@@ -146,7 +167,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Should not error with allow_fail=true
-    import_vault_file("kv/test-app", "secret.txt", true)?;
+    import_vault_file("kv/test-app", &PathBuf::from_str("secret.txt")?, true)?;
 
     // File should not exist
     assert!(!std::path::Path::new("secret.txt").exists());
@@ -168,7 +189,11 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Should error with allow_fail=false
-    let result = import_vault_file("kv/test-app", "secret.txt", false);
+    let result = import_vault_file(
+      "kv/test-app",
+      &PathBuf::from_str("secret.txt")?,
+      false,
+    );
     assert!(result.is_err());
 
     let err = result.unwrap_err();
@@ -188,7 +213,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Non-existent path with allow_fail=true should succeed
-    import_vault_file("kv/nonexistent", "any.txt", true)?;
+    import_vault_file("kv/nonexistent", &PathBuf::from_str("any.txt")?, true)?;
     assert!(!std::path::Path::new("any.txt").exists());
 
     Ok(())
@@ -202,7 +227,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Should succeed with allow_fail=true when vault command fails
-    import_vault_file("kv/test", "file.txt", true)?;
+    import_vault_file("kv/test", &PathBuf::from_str("file.txt")?, true)?;
     assert!(!std::path::Path::new("file.txt").exists());
 
     Ok(())
@@ -214,7 +239,8 @@ mod tests {
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
 
-    let result = import_vault_file("kv/test", "file.txt", false);
+    let result =
+      import_vault_file("kv/test", &PathBuf::from_str("file.txt")?, false);
     assert!(result.is_err());
 
     let err = result.unwrap_err();
@@ -243,7 +269,11 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Import from nested path
-    import_vault_file("kv/team/project/env", "password", false)?;
+    import_vault_file(
+      "kv/team/project/env",
+      &PathBuf::from_str("password")?,
+      false,
+    )?;
 
     assert!(std::path::Path::new("password").exists());
     let content = std::fs::read_to_string("password")?;
@@ -265,7 +295,7 @@ mod tests {
     std::env::set_current_dir(&temp_dir)?;
 
     // Path with trailing slash should still work
-    import_vault_file("kv/my-app/", "config.yaml", false)?;
+    import_vault_file("kv/my-app/", &PathBuf::from_str("config.yaml")?, false)?;
 
     assert!(std::path::Path::new("config.yaml").exists());
     let content = std::fs::read_to_string("config.yaml")?;
@@ -296,7 +326,7 @@ mod tests {
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
 
-    import_vault_file("kv/binary", "data", false)?;
+    import_vault_file("kv/binary", &PathBuf::from_str("data")?, false)?;
 
     // Vault returns base64-encoded strings in JSON, which gets decoded by serde_json
     // The function saves the string value as-is
@@ -318,7 +348,7 @@ mod tests {
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
 
-    import_vault_file("kv/permissions", "secret", false)?;
+    import_vault_file("kv/permissions", &PathBuf::from_str("secret")?, false)?;
 
     // Check file has 600 permissions (owner read/write only)
     let metadata = std::fs::metadata("secret")?;
@@ -328,6 +358,45 @@ mod tests {
       let mode = metadata.permissions().mode();
       assert_eq!(mode & 0o777, 0o600, "File should have 600 permissions");
     }
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_import_vault_file_subdir() -> anyhow::Result<()> {
+    let _container = vault_container("vfile-subdir-test").await?;
+
+    let path = "kv/test-app";
+    let file = "secret.txt";
+    let value = "top-secret-value";
+    let dest = PathBuf::from_str("subdir")?.join(file);
+
+    // Write test secret
+    Command::new("vault")
+      .args([
+        "kv",
+        "put",
+        &format!("{path}/current"),
+        &format!("{file}={value}"),
+      ])
+      .output()?;
+
+    let temp_dir = TempDir::new()?;
+    std::env::set_current_dir(&temp_dir)?;
+
+    // Test import
+    import_vault_file(path, &dest, false)?;
+
+    // Verify file was created
+    assert!(dest.exists());
+    let content = std::fs::read_to_string(&dest)?;
+    assert_eq!(content, value);
+
+    // Check permissions are 600
+    let metadata = std::fs::metadata(&dest)?;
+    #[cfg(unix)]
+    assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
 
     Ok(())
   }

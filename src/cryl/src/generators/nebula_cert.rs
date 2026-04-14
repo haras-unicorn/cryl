@@ -26,6 +26,14 @@ pub fn generate_nebula_cert(
   let tmp_public = public.as_os_str().to_string_lossy().to_string() + ".tmp";
   let tmp_private = private.as_os_str().to_string_lossy().to_string() + ".tmp";
 
+  // Create parent directories because nebula-cert can't handle that
+  if let Some(public_parent) = public.parent() {
+    std::fs::create_dir_all(public_parent)?;
+  }
+  if let Some(private_parent) = private.parent() {
+    std::fs::create_dir_all(private_parent)?;
+  }
+
   // Run nebula-cert sign to generate the node certificate
   let output = Command::new("nebula-cert")
     .arg("sign")
@@ -352,5 +360,117 @@ mod tests {
 
     // Should fail because the CA is invalid
     assert!(result.is_err());
+  }
+
+  #[test]
+  fn test_generate_nebula_cert_ca_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+
+    // First, create a CA
+    let ca_public_path = temp.path().join("subdir1").join("ca.crt");
+    let ca_private_path = temp.path().join("subdir2").join("ca.key");
+    generate_nebula_ca(
+      "Test CA",
+      &ca_public_path,
+      &ca_private_path,
+      3650,
+      true,
+    )?;
+
+    // Now generate a node cert
+    let node_public_path = temp.path().join("node.crt");
+    let node_private_path = temp.path().join("node.key");
+
+    generate_nebula_cert(
+      &ca_public_path,
+      &ca_private_path,
+      "test-node",
+      "10.1.1.5/24",
+      &node_public_path,
+      &node_private_path,
+      true,
+    )?;
+
+    // Check that both files exist
+    assert!(node_public_path.exists());
+    assert!(node_private_path.exists());
+
+    // Check public certificate content - should be a PEM certificate
+    let public_content = std::fs::read_to_string(&node_public_path)?;
+    assert!(public_content.contains("-----BEGIN NEBULA CERTIFICATE"));
+    assert!(public_content.contains("-----END NEBULA CERTIFICATE"));
+
+    // Check private key content - should be a PEM private key
+    let private_content = std::fs::read_to_string(&node_private_path)?;
+    assert!(private_content.contains("-----BEGIN NEBULA"));
+    assert!(private_content.contains("-----END NEBULA"));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&node_private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&node_public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_nebula_cert_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+
+    // First, create a CA
+    let ca_public_path = temp.path().join("ca.crt");
+    let ca_private_path = temp.path().join("ca.key");
+    generate_nebula_ca(
+      "Test CA",
+      &ca_public_path,
+      &ca_private_path,
+      3650,
+      true,
+    )?;
+
+    // Now generate a node cert
+    let node_public_path = temp.path().join("subdir1").join("node.crt");
+    let node_private_path = temp.path().join("subdir2").join("node.key");
+
+    generate_nebula_cert(
+      &ca_public_path,
+      &ca_private_path,
+      "test-node",
+      "10.1.1.5/24",
+      &node_public_path,
+      &node_private_path,
+      true,
+    )?;
+
+    // Check that both files exist
+    assert!(node_public_path.exists());
+    assert!(node_private_path.exists());
+
+    // Check public certificate content - should be a PEM certificate
+    let public_content = std::fs::read_to_string(&node_public_path)?;
+    assert!(public_content.contains("-----BEGIN NEBULA CERTIFICATE"));
+    assert!(public_content.contains("-----END NEBULA CERTIFICATE"));
+
+    // Check private key content - should be a PEM private key
+    let private_content = std::fs::read_to_string(&node_private_path)?;
+    assert!(private_content.contains("-----BEGIN NEBULA"));
+    assert!(private_content.contains("-----END NEBULA"));
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&node_private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&node_public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
+
+    Ok(())
   }
 }

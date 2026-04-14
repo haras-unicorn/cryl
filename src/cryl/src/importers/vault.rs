@@ -1,9 +1,27 @@
 use crate::common::{CrylError, CrylResult, save_atomic};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+};
 
 /// Vault importer - imports all files from a Vault KV path
-pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
+/// to a desired directory or current directory if none
+pub fn import_vault(
+  path: &str,
+  dir: Option<&Path>,
+  allow_fail: bool,
+) -> CrylResult<()> {
   // Trim trailing slashes as per Nu script
   let trimmed_path = path.trim_end_matches('/');
+
+  // Extract last component now to exit early
+  // and because medusa puts everything under that
+  let Some(last_component) = trimmed_path.split("/").last().to_owned() else {
+    return Err(CrylError::Import {
+      importer: "vault".to_string(),
+      message: "Path is empty".to_string(),
+    });
+  };
 
   // Execute medusa export command
   let output = match std::process::Command::new("medusa")
@@ -63,7 +81,8 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
 
   // Extract files from current/ directory
   let files = match parsed
-    .get("current")
+    .get(last_component)
+    .and_then(|value| value.get("current"))
     .and_then(|current| current.as_mapping())
   {
     Some(mapping) => mapping,
@@ -95,6 +114,12 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
       }
     };
 
+    let key_str = if let Some(dir) = dir {
+      dir.join(key_str)
+    } else {
+      PathBuf::from_str(key_str)?
+    };
+
     save_atomic(key_str, value_str.as_bytes(), true, false)?;
   }
 
@@ -103,6 +128,7 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::common::vault_container;
   use serial_test::serial;
   use std::process::Command;
@@ -112,64 +138,62 @@ mod tests {
   #[serial]
   async fn test_import_vault_with_real_vault() -> anyhow::Result<()> {
     let _container = vault_container("vault-import-test").await?;
+    let key = "kv/my-app";
+    let key_current = format!("{}/current", key);
+    let file = "secret.txt";
+    let content = "top-secret";
 
     // Write test data
     Command::new("vault")
-      .args(["kv", "put", "kv/my-app/current", "secret.txt=top-secret"])
+      .args(["kv", "put", &key_current, &format!("{file}={content}")])
       .output()?;
 
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
+    import_vault(key, None, false)?;
 
-    // Since medusa might not be installed, we'll mock with curl for demo
-    // In real tests you'd install medusa in container or use vault CLI
-    let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/my-app/current"])
-      .output()?;
-
-    if !output.status.success() {
-      anyhow::bail!(
-        "vault kv get failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-      );
-    }
-
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(json["data"]["data"]["secret.txt"], "top-secret");
+    // Check file content is ok
+    let result = std::fs::read_to_string(file)?;
+    assert_eq!(result, content);
 
     Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_import_vault_file_with_real_vault() -> anyhow::Result<()> {
+  async fn test_import_vault_multiple_with_real_vault() -> anyhow::Result<()> {
     let _container = vault_container("vault-file-test").await?;
+    let key = "kv/my-app";
+    let key_current = format!("{}/current", key);
+    let first_file = "secret.txt";
+    let first_content = "top-secret";
+    let second_file = "config.yaml";
+    let second_content = "port: 8080";
 
     // Write multiple values
     Command::new("vault")
       .args([
         "kv",
         "put",
-        "kv/my-app",
-        "secret.txt=top-secret",
-        "config.yaml=port: 8080",
+        &key_current,
+        &format!("{first_file}={first_content}"),
+        &format!("{second_file}={second_content}"),
       ])
       .output()?;
 
+    // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
+    import_vault(key, None, false)?;
 
-    // Test importing single file
-    let output = Command::new("vault")
-      .args(&["kv", "get", "-format=json", "kv/my-app"])
-      .output()?;
+    // Check first file content is ok
+    let result = std::fs::read_to_string(first_file)?;
+    assert_eq!(result, first_content);
 
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    let secret = json["data"]["data"]["secret.txt"].as_str().unwrap();
-
-    std::fs::write("secret.txt", secret)?;
-    assert_eq!(std::fs::read_to_string("secret.txt")?, "top-secret");
+    // Check second file content is ok
+    let result = std::fs::read_to_string(second_file)?;
+    assert_eq!(result, second_content);
 
     Ok(())
   }
@@ -179,17 +203,38 @@ mod tests {
   async fn test_import_vault_missing_path_allow_fail() -> anyhow::Result<()> {
     let _container = vault_container("vault-missing-test").await?;
 
+    // Test random non-existent key
     let temp_dir = TempDir::new()?;
     std::env::set_current_dir(&temp_dir)?;
+    import_vault("kv/nonexistent", None, true)?;
 
-    // Try to import non-existent path with allow_fail=true
-    // This should return Ok(()) even though vault returns error
-    let output = Command::new("vault")
-      .args(&["kv", "get", "-format=json", "kv/nonexistent"])
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_import_vault_subdir_with_real_vault() -> anyhow::Result<()> {
+    let _container = vault_container("vault-import-test").await?;
+    let key = "kv/my-app";
+    let key_current = format!("{}/current", key);
+    let file = "secret.txt";
+    let content = "top-secret";
+    let dir = PathBuf::from_str("subdir")?;
+    let dest = dir.join(file);
+
+    // Write test data
+    Command::new("vault")
+      .args(["kv", "put", &key_current, &format!("{file}={content}")])
       .output()?;
 
-    // Command fails but test passes because we're checking allow_fail behavior
-    assert!(!output.status.success());
+    // Now test import_vault using medusa (which uses Vault API)
+    let temp_dir = TempDir::new()?;
+    std::env::set_current_dir(&temp_dir)?;
+    import_vault(key, Some(&dir), false)?;
+
+    // Check file content is ok
+    let result = std::fs::read_to_string(dest)?;
+    assert_eq!(result, content);
 
     Ok(())
   }

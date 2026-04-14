@@ -101,4 +101,17 @@ mod tests {
       assert!(content.chars().all(|c| c.is_ascii_digit()));
     }
   }
+
+  #[test]
+  fn test_generate_pin_subdir() {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("subdir").join("test_pin");
+
+    generate_pin(&path, 0, false).unwrap();
+
+    assert!(path.exists());
+    let content = fs::read_to_string(&path).unwrap();
+    assert_eq!(content.len(), 8);
+    assert!(content.chars().all(|c| c.is_ascii_digit()));
+  }
 }

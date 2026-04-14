@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{read_file_if_exists, save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, read_file_if_exists, save_atomic};
 
 /// Generate a CockroachDB CA (certificate + key)
 ///
@@ -227,6 +227,50 @@ mod tests {
     // Both should be valid certificates
     assert!(public1.contains("-----BEGIN CERTIFICATE"));
     assert!(public2.contains("-----BEGIN CERTIFICATE"));
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_cockroach_ca_subdir() -> anyhow::Result<()> {
+    if skip_in_ci() {
+      return Ok(());
+    }
+    let temp = TempDir::new()?;
+    let public_path = temp.path().join("subdir1").join("ca.crt");
+    let private_path = temp.path().join("subdir2").join("ca.key");
+
+    generate_cockroach_ca(&public_path, &private_path, true)?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check public certificate content - should be a PEM certificate
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert!(public_content.contains("-----BEGIN CERTIFICATE"));
+    assert!(public_content.contains("-----END CERTIFICATE"));
+
+    // Check private key content - should be a PEM private key
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(
+      private_content.contains("-----BEGIN RSA PRIVATE KEY")
+        || private_content.contains("-----BEGIN PRIVATE KEY")
+    );
+    assert!(
+      private_content.contains("-----END RSA PRIVATE KEY")
+        || private_content.contains("-----END PRIVATE KEY")
+    );
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
 
     Ok(())
   }

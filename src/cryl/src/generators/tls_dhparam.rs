@@ -91,4 +91,18 @@ mod tests {
     let perms = metadata.permissions();
     assert_eq!(perms.mode() & 0o777, 0o600);
   }
+
+  #[test]
+  fn test_generate_tls_dhparam_subdir() {
+    let temp = TempDir::new().unwrap();
+    let path = temp.path().join("subdir").join("dhparam.pem");
+
+    generate_tls_dhparam(&path, false).unwrap();
+
+    assert!(path.exists());
+    let content = fs::read_to_string(&path).unwrap();
+    // DH params should contain "BEGIN DH PARAMETERS" and "END DH PARAMETERS"
+    assert!(content.contains("BEGIN DH PARAMETERS"));
+    assert!(content.contains("END DH PARAMETERS"));
+  }
 }

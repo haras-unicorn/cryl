@@ -1,7 +1,8 @@
 use crate::common::{CrylError, CrylResult};
 use crate::{cli::*, exporters, importers};
 use crate::{generators, schema::*};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
   match cmd {
@@ -18,8 +19,17 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
       allow_fail.unwrap_or(false),
     ),
     Import::Vault {
-      arguments: VaultImportArgs { path, allow_fail },
-    } => importers::import_vault(path, allow_fail.unwrap_or(false)),
+      arguments:
+        VaultImportArgs {
+          path,
+          dir,
+          allow_fail,
+        },
+    } => importers::import_vault(
+      path,
+      dir.as_ref().map(Path::new),
+      allow_fail.unwrap_or(false),
+    ),
     Import::VaultFile {
       arguments:
         VaultFileImportArgs {
@@ -27,7 +37,11 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
           file,
           allow_fail,
         },
-    } => importers::import_vault_file(path, file, allow_fail.unwrap_or(false)),
+    } => importers::import_vault_file(
+      path,
+      &PathBuf::from_str(file)?,
+      allow_fail.unwrap_or(false),
+    ),
   }
 }
 
@@ -53,7 +67,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-json.json", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_json(
         Path::new(&name),
         "json",
@@ -66,7 +80,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-yaml.yaml", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_yaml(
         Path::new(&name),
         "yaml",
@@ -79,7 +93,7 @@ pub fn run_generate_spec(
     } => {
       let data_path_str = format!("{}-toml.toml", name);
       let data_path = Path::new(&data_path_str);
-      crate::common::serialize_to_file(&value, data_path)?;
+      crate::common::serialize_to_file(&value, data_path, None)?;
       generators::generate_toml(
         Path::new(&name),
         "toml",
@@ -511,7 +525,7 @@ pub fn run_generate_spec(
     } => {
       let vars_path_str = format!("{}-vars.json", name);
       let vars_path = Path::new(&vars_path_str);
-      crate::common::serialize_to_file(&variables, vars_path)?;
+      crate::common::serialize_to_file(&variables, vars_path, None)?;
       generators::generate_env(
         Path::new(&name),
         "json",
@@ -539,7 +553,7 @@ pub fn run_generate_spec(
       };
       let input_path_str = format!("{}-input.json", name);
       let input_path = Path::new(&input_path_str);
-      crate::common::serialize_to_file(&input, input_path)?;
+      crate::common::serialize_to_file(&input, input_path, None)?;
       generators::generate_mustache(
         Path::new(&name),
         "json",
@@ -575,7 +589,7 @@ pub fn run_generate_spec(
       // Serialize secrets to temp file
       let secrets_path_str = format!("{}-secrets.json", private);
       let secrets_path = Path::new(&secrets_path_str);
-      crate::common::serialize_to_file(&secrets, secrets_path)?;
+      crate::common::serialize_to_file(&secrets, secrets_path, None)?;
       generators::generate_sops(
         Path::new(&age),
         Path::new(&public),
@@ -594,11 +608,11 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
       arguments: CopyExportArgs { from, to },
     } => exporters::export_copy(Path::new(&from), Path::new(&to)),
     Export::Vault {
-      arguments: VaultExportArgs { path },
-    } => exporters::export_vault(path),
+      arguments: VaultExportArgs { path, dir },
+    } => exporters::export_vault(path, dir.as_ref().map(Path::new)),
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
-    } => exporters::export_vault_file(path, file),
+    } => exporters::export_vault_file(path, &PathBuf::from_str(file)?),
   }
 }
 
@@ -609,14 +623,22 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
       to,
       allow_fail,
     } => importers::import_copy(from, to, *allow_fail),
-    ImportCommands::Vault { path, allow_fail } => {
-      importers::import_vault(path, *allow_fail)
-    }
+    ImportCommands::Vault {
+      path,
+      dir,
+      allow_fail,
+    } => importers::import_vault(
+      path,
+      dir.as_ref().map(|dir| dir.as_path()),
+      *allow_fail,
+    ),
     ImportCommands::VaultFile {
       path,
       file,
       allow_fail,
-    } => importers::import_vault_file(path, file, *allow_fail),
+    } => {
+      importers::import_vault_file(path, &PathBuf::from_str(file)?, *allow_fail)
+    }
   }
 }
 
@@ -947,9 +969,11 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
 pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
   match cmd {
     ExportCommands::Copy { from, to } => exporters::export_copy(from, to),
-    ExportCommands::Vault { path } => exporters::export_vault(path),
+    ExportCommands::Vault { path, dir } => {
+      exporters::export_vault(path, dir.as_ref().map(Path::new))
+    }
     ExportCommands::VaultFile { path, file } => {
-      exporters::export_vault_file(path, file)
+      exporters::export_vault_file(path, &PathBuf::from_str(file)?)
     }
   }
 }

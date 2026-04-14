@@ -63,4 +63,37 @@ mod tests {
     let result = import_copy(&from, &to, false);
     assert!(result.is_err());
   }
+
+  #[test]
+  fn test_import_copy_from_subdir() {
+    let temp = TempDir::new().unwrap();
+    let from = temp.path().join("subdir").join("secret");
+    let to = temp.path().join("dest");
+
+    std::fs::create_dir_all(from.parent().unwrap()).unwrap();
+    std::fs::write(&from, "test content").unwrap();
+
+    let result = import_copy(&from, &to, false);
+    assert!(!result.is_err());
+
+    assert!(to.exists());
+    let content = std::fs::read_to_string(&to).unwrap();
+    assert_eq!(content, "test content");
+  }
+
+  #[test]
+  fn test_import_copy_to_subdir() {
+    let temp = TempDir::new().unwrap();
+    let from = temp.path().join("secret");
+    let to = temp.path().join("subdir").join("dest");
+
+    std::fs::write(&from, "test content").unwrap();
+
+    let result = import_copy(&from, &to, false);
+    assert!(!result.is_err());
+
+    assert!(to.exists());
+    let content = std::fs::read_to_string(&to).unwrap();
+    assert_eq!(content, "test content");
+  }
 }

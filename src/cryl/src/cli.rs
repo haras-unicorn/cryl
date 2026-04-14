@@ -147,6 +147,8 @@ pub enum ImportCommands {
   Vault {
     /// Vault path to import from
     path: String,
+    /// Directory in which to import (default is current directory)
+    dir: Option<PathBuf>,
     /// Allow failing to import if source missing
     #[arg(long)]
     allow_fail: bool,
@@ -715,6 +717,8 @@ pub enum ExportCommands {
   Vault {
     /// Base vault path
     path: String,
+    /// Directory from which to export (default is current directory)
+    dir: Option<PathBuf>,
   },
 
   /// Export single file to Vault

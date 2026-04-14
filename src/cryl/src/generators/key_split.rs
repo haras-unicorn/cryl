@@ -244,4 +244,66 @@ mod tests {
     let err_msg = format!("{}", result.unwrap_err());
     assert!(err_msg.contains("threshold cannot be greater than shares"));
   }
+
+  #[test]
+  fn test_generate_key_split_key_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let key_path = temp.path().join("subdir").join("test_key");
+    fs::create_dir_all(key_path.parent().unwrap()).unwrap();
+    fs::write(&key_path, "my_secret_key_12345")?;
+
+    let prefix = temp.path().join("share").to_string_lossy().to_string();
+    generate_key_split(&key_path, &prefix, 2, 3, true)?;
+
+    // Check that 3 share files were created
+    for i in 0..3 {
+      let share_path = temp.path().join(format!("share-{}", i));
+      assert!(share_path.exists(), "Share {} should exist", i);
+
+      // Check permissions - should be private (600)
+      let metadata = fs::metadata(&share_path)?;
+      let perms = metadata.permissions();
+      assert_eq!(
+        perms.mode() & 0o777,
+        0o600,
+        "Share {} should have 600 permissions",
+        i
+      );
+    }
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_key_split_shares_subdir() -> anyhow::Result<()> {
+    let temp = TempDir::new()?;
+    let key_path = temp.path().join("test_key");
+    fs::write(&key_path, "my_secret_key_12345")?;
+
+    let prefix = temp
+      .path()
+      .join("subdir")
+      .join("share")
+      .to_string_lossy()
+      .to_string();
+    generate_key_split(&key_path, &prefix, 2, 3, true)?;
+
+    // Check that 3 share files were created
+    for i in 0..3 {
+      let share_path = temp.path().join("subdir").join(format!("share-{}", i));
+      assert!(share_path.exists(), "Share {} should exist", i);
+
+      // Check permissions - should be private (600)
+      let metadata = fs::metadata(&share_path)?;
+      let perms = metadata.permissions();
+      assert_eq!(
+        perms.mode() & 0o777,
+        0o600,
+        "Share {} should have 600 permissions",
+        i
+      );
+    }
+
+    Ok(())
+  }
 }

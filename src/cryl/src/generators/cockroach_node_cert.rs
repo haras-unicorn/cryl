@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use crate::common::{read_file_if_exists, save_atomic, CrylError, CrylResult};
+use crate::common::{CrylError, CrylResult, read_file_if_exists, save_atomic};
 
 /// Generate a CockroachDB node certificate (signed by CockroachDB CA)
 ///
@@ -387,6 +387,60 @@ mod tests {
       "Expected 'not found' error, got: {}",
       err_msg
     );
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_generate_cockroach_node_cert_subdir() -> anyhow::Result<()> {
+    if skip_in_ci() {
+      return Ok(());
+    }
+
+    let temp = TempDir::new()?;
+    let (ca_public, ca_private) = create_test_ca(&temp)?;
+
+    let public_path = temp.path().join("subdir1").join("node.crt");
+    let private_path = temp.path().join("subdir2").join("node.key");
+
+    generate_cockroach_node_cert(
+      &ca_public,
+      &ca_private,
+      &public_path,
+      &private_path,
+      "localhost,127.0.0.1",
+      true,
+    )?;
+
+    // Check that both files exist
+    assert!(public_path.exists());
+    assert!(private_path.exists());
+
+    // Check public certificate content - should be a PEM certificate
+    let public_content = std::fs::read_to_string(&public_path)?;
+    assert!(public_content.contains("-----BEGIN CERTIFICATE"));
+    assert!(public_content.contains("-----END CERTIFICATE"));
+
+    // Check private key content - should be a PEM private key
+    let private_content = std::fs::read_to_string(&private_path)?;
+    assert!(
+      private_content.contains("-----BEGIN RSA PRIVATE KEY")
+        || private_content.contains("-----BEGIN PRIVATE KEY")
+    );
+    assert!(
+      private_content.contains("-----END RSA PRIVATE KEY")
+        || private_content.contains("-----END PRIVATE KEY")
+    );
+
+    // Check permissions - private should be 600
+    let private_metadata = std::fs::metadata(&private_path)?;
+    let private_perms = private_metadata.permissions();
+    assert_eq!(private_perms.mode() & 0o777, 0o600);
+
+    // Check permissions - public should be 644
+    let public_metadata = std::fs::metadata(&public_path)?;
+    let public_perms = public_metadata.permissions();
+    assert_eq!(public_perms.mode() & 0o777, 0o644);
 
     Ok(())
   }
