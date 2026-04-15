@@ -105,6 +105,10 @@ pub struct CommonArgs {
   /// Don't remove working directory contents (non-sandboxed only)
   #[arg(long)]
   pub keep: bool,
+
+  /// Run envsubst on the specification before running (only in `${foo}` format)
+  #[arg(long)]
+  pub envsubst: bool,
 }
 
 #[derive(Args, Debug, Clone)]

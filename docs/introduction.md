@@ -38,6 +38,8 @@ cryl will always take these arguments into account:
   'yaml' and 'toml'
 - `--verbose` - turn on logging from modules
 - `--very-verbose` - turn on logging from tools (implies verbose)
+- `--envsubst` - run environment substitution on specification string before
+  running
 
 ### Manifest
 

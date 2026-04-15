@@ -242,3 +242,44 @@ arguments.to = "{}"
   assert!(export_dest.exists(), "Export destination should exist");
   assert_eq!(fs::read_to_string(&export_dest).unwrap(), "generated data");
 }
+
+/// Test text with envsubst generation
+#[test]
+fn test_text_envsubst_generation() {
+  let temp_dir = TempDir::new().unwrap();
+  let spec_path = temp_dir.path().join("spec.toml");
+  let work_dir = temp_dir.path().join("work");
+  fs::create_dir(&work_dir).unwrap();
+
+  // NOTE: TOML requires exports to be defined before generations table
+  let spec_content = r#"
+imports = []
+exports = []
+
+[[generations]]
+generator = "text"
+arguments.name = "hello.txt"
+arguments.text = "Hello, ${WORLD}!"
+"#;
+
+  fs::write(&spec_path, spec_content).unwrap();
+
+  let mut cmd = Command::cargo_bin("cryl").unwrap();
+  cmd
+    .arg("path")
+    .arg(&spec_path)
+    .arg("--nosandbox")
+    .arg("--stay")
+    .arg("--keep")
+    .arg("--envsubst")
+    .env("WORLD", "World")
+    .current_dir(&work_dir);
+
+  cmd.assert().success();
+
+  let text_path = work_dir.join("hello.txt");
+  assert!(text_path.exists(), "Text file should be created");
+
+  let content = fs::read_to_string(&text_path).unwrap();
+  assert_eq!(content, "Hello, World!");
+}

@@ -31,7 +31,8 @@ pub fn run_from_path(
     )));
   }
 
-  let spec: Specification = deserialize(&content, format)?;
+  let spec: Specification =
+    deserialize_spec(&content, format, common.envsubst)?;
 
   run(&spec, common, sandbox, Some(spec_path), &content, format)?;
 
@@ -56,11 +57,33 @@ pub fn run_from_stdin(
     )));
   }
 
-  let spec: Specification = deserialize(&content, format)?;
+  let spec: Specification =
+    deserialize_spec(&content, format, common.envsubst)?;
 
   run(&spec, common, sandbox, None, &content, format)?;
 
   Ok(())
+}
+
+fn deserialize_spec(
+  spec: &str,
+  format: Format,
+  envsubst: bool,
+) -> CrylResult<Specification> {
+  if envsubst {
+    let mut template = spec.to_string();
+    for (key, value) in std::env::vars() {
+      let regular_format = format!("${key}");
+      template = template.replace(&regular_format, &value);
+
+      let braces_format = format!("${{{key}}}");
+      template = template.replace(&braces_format, &value);
+    }
+
+    deserialize(&template, format)
+  } else {
+    deserialize(spec, format)
+  }
 }
 
 fn run(
