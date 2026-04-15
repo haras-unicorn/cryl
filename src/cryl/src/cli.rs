@@ -118,12 +118,14 @@ pub struct SandboxArgs {
   pub nosandbox: bool,
 
   /// Additional read-only bind mounts for bubblewrap
+  /// Format: `<target and source>,<target>:<source>,...`
   #[arg(long, value_delimiter = ',')]
-  pub ro_binds: Vec<PathBuf>,
+  pub ro_binds: Vec<BindMount>,
 
   /// Additional bind mounts for bubblewrap
+  /// Format: `<target and source>,<target>:<source>,...`
   #[arg(long, value_delimiter = ',')]
-  pub binds: Vec<PathBuf>,
+  pub binds: Vec<BindMount>,
 
   /// Additional tool binaries for bubblewrap PATH
   #[arg(long, value_delimiter = ',')]
@@ -733,4 +735,29 @@ pub enum ExportCommands {
     /// Local file to export
     file: String,
   },
+}
+
+#[derive(Clone, Debug)]
+pub struct BindMount {
+  pub source: PathBuf,
+  pub target: Option<PathBuf>,
+}
+
+impl std::str::FromStr for BindMount {
+  type Err = &'static str;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let parts = s.split(':').collect::<Vec<_>>();
+    match parts.len() {
+      1 => Ok(BindMount {
+        source: PathBuf::from(parts[0]),
+        target: None,
+      }),
+      2 => Ok(BindMount {
+        source: PathBuf::from(parts[0]),
+        target: Some(PathBuf::from(parts[1])),
+      }),
+      _ => Err("Invalid bind mount format. Use 'path' or 'source:target'"),
+    }
+  }
 }

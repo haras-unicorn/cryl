@@ -4,7 +4,7 @@
 
 use assert_cmd::Command;
 use predicates::prelude::*;
-use std::fs;
+use std::{fs, path::PathBuf, str::FromStr};
 use tempfile::TempDir;
 
 /// Skip tests in CI environments.
@@ -211,22 +211,38 @@ fn test_sandbox_with_ro_binds() {
   let spec_path = temp_dir.path().join("spec.toml");
   let work_dir = temp_dir.path().join("work");
   let source_dir = temp_dir.path().join("source");
+  let source2_dir = temp_dir.path().join("source2");
+  let target2_dir = PathBuf::from_str("/target2").unwrap();
 
   fs::create_dir(&work_dir).unwrap();
   fs::create_dir(&source_dir).unwrap();
+  fs::create_dir(&source2_dir).unwrap();
 
-  // Create a file in source dir
-  fs::write(source_dir.join("data.txt"), "readonly data").unwrap();
+  // Create a file in source dirs
+  fs::write(source_dir.join("file"), "readonly data").unwrap();
+  fs::write(source2_dir.join("file"), "readonly data 2").unwrap();
 
-  let spec_content = r#"
-imports = []
+  let spec_content = format!(
+    r#"
 exports = []
+
+[[imports]]
+importer = "copy"
+arguments.from = "/target2/file"
+arguments.to = "source2-file"
+
+[[imports]]
+importer = "copy"
+arguments.from = "{}/file"
+arguments.to = "source-file"
 
 [[generations]]
 generator = "text"
 arguments.name = "test.txt"
 arguments.text = "test"
-"#;
+"#,
+    source_dir.to_str().unwrap()
+  );
 
   fs::write(&spec_path, spec_content).unwrap();
 
@@ -235,7 +251,12 @@ arguments.text = "test"
     .arg("path")
     .arg(&spec_path)
     .arg("--ro-binds")
-    .arg(source_dir.to_str().unwrap())
+    .arg(format!(
+      "{},{}:{}",
+      source_dir.to_str().unwrap(),
+      source2_dir.to_str().unwrap(),
+      target2_dir.to_str().unwrap()
+    ))
     .current_dir(&work_dir);
 
   cmd.assert().success();
@@ -251,22 +272,36 @@ fn test_sandbox_with_binds() {
   let temp_dir = TempDir::new().unwrap();
   let spec_path = temp_dir.path().join("spec.toml");
   let work_dir = temp_dir.path().join("work");
-  let data_dir = temp_dir.path().join("data");
+  let source_dir = temp_dir.path().join("source");
+  let source2_dir = temp_dir.path().join("source2");
+  let target2_dir = PathBuf::from_str("/target2").unwrap();
 
   fs::create_dir(&work_dir).unwrap();
-  fs::create_dir(&data_dir).unwrap();
+  fs::create_dir(&source_dir).unwrap();
+  fs::create_dir(&source2_dir).unwrap();
 
-  fs::write(data_dir.join("input.txt"), "input data").unwrap();
+  // Create a file in source 2 dir
+  fs::write(source2_dir.join("file"), "data 2").unwrap();
 
-  let spec_content = r#"
-imports = []
-exports = []
+  let spec_content = format!(
+    r#"
+[[imports]]
+importer = "copy"
+arguments.from = "/target2/file"
+arguments.to = "source2-file"
 
 [[generations]]
 generator = "text"
 arguments.name = "test.txt"
 arguments.text = "test"
-"#;
+
+[[exports]]
+exporter = "copy"
+arguments.from = "source2-file"
+arguments.to = "{}/file"
+"#,
+    source_dir.to_str().unwrap()
+  );
 
   fs::write(&spec_path, spec_content).unwrap();
 
@@ -275,10 +310,20 @@ arguments.text = "test"
     .arg("path")
     .arg(&spec_path)
     .arg("--binds")
-    .arg(data_dir.to_str().unwrap())
+    .arg(format!(
+      "{},{}:{}",
+      source_dir.to_str().unwrap(),
+      source2_dir.to_str().unwrap(),
+      target2_dir.to_str().unwrap()
+    ))
     .current_dir(&work_dir);
-
   cmd.assert().success();
+
+  assert!(std::fs::exists(source_dir.join("file")).unwrap());
+  assert_eq!(
+    std::fs::read_to_string(source_dir.join("file")).unwrap(),
+    "data 2"
+  );
 }
 
 /// Test sandbox with max limits

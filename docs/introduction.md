@@ -72,8 +72,9 @@ be provided to disable the sandbox. When cryl is running in a sandbox the
 following arguments will be taken into account:
 
 - `--ro-binds: list<string> = []`- additional read-only bind mounts to add to
-  bubblewrap
-- `--binds: list<string> = []`- additional bind mounts to add to bubblewrap
+  bubblewrap in format `<target and source>,<target>:<source>,...`
+- `--binds: list<string> = []`- additional bind mounts to add to bubblewrap in
+  format `<target and source>,<target>:<source>,...`
 - `--tools: list<string> = []`- additional list of tool binaries that cryl is
   allowed to access via PATH
 - `--allow-net`- allow network while running
