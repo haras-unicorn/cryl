@@ -291,30 +291,30 @@ fn run_sandbox(
 
   // Handle ro_binds
   for bind in &sandbox.ro_binds {
-    let abs_path = std::fs::canonicalize(bind).map_err(|e| {
-      CrylError::Sandbox(format!(
-        "Failed to canonicalize ro_bind '{}': {}",
-        bind.display(),
-        e
-      ))
-    })?;
+    let abs_source = std::fs::canonicalize(&bind.source)?;
+    let target = bind
+      .target
+      .as_ref()
+      .map(|t| t.to_string_lossy())
+      .unwrap_or_else(|| abs_source.to_string_lossy());
+
     bwrap_args.push("--ro-bind".to_string());
-    bwrap_args.push(abs_path.to_string_lossy().to_string());
-    bwrap_args.push(abs_path.to_string_lossy().to_string());
+    bwrap_args.push(abs_source.to_string_lossy().to_string());
+    bwrap_args.push(target.to_string());
   }
 
   // Handle binds (read-write)
   for bind in &sandbox.binds {
-    let abs_path = std::fs::canonicalize(bind).map_err(|e| {
-      CrylError::Sandbox(format!(
-        "Failed to canonicalize bind '{}': {}",
-        bind.display(),
-        e
-      ))
-    })?;
+    let abs_source = std::fs::canonicalize(&bind.source)?;
+    let target = bind
+      .target
+      .as_ref()
+      .map(|t| t.to_string_lossy())
+      .unwrap_or_else(|| abs_source.to_string_lossy());
+
     bwrap_args.push("--bind".to_string());
-    bwrap_args.push(abs_path.to_string_lossy().to_string());
-    bwrap_args.push(abs_path.to_string_lossy().to_string());
+    bwrap_args.push(abs_source.to_string_lossy().to_string());
+    bwrap_args.push(target.to_string());
   }
 
   // Create a temp dir for tools and link required tools
