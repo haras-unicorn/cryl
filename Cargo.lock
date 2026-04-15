@@ -688,6 +688,7 @@ dependencies = [
  "chrono",
  "clap",
  "hex",
+ "itertools",
  "mustache",
  "predicates",
  "reqwest",
