@@ -70,6 +70,45 @@ arguments.name = "test-id"
 }
 
 #[test]
+fn test_manifest_subdir() {
+  let temp_dir = create_temp_dir();
+  let spec = r#"
+imports = []
+exports = []
+
+[[generations]]
+generator = "id"
+arguments.name = "subdir/test-id"
+"#;
+  write_spec(temp_dir.path(), "spec.toml", spec);
+
+  let mut cmd = Command::cargo_bin("cryl").unwrap();
+  cmd
+    .current_dir(&temp_dir)
+    .arg("path")
+    .arg("--nosandbox")
+    .arg("--stay")
+    .arg("--keep")
+    .arg(temp_dir.path().join("spec.toml"));
+
+  cmd.assert().success();
+
+  // Check manifest was created
+  let manifest_path = temp_dir.path().join("cryl-manifest.json");
+  assert!(
+    manifest_path.exists(),
+    "Manifest should be created by default"
+  );
+
+  // Verify manifest content
+  let manifest_content = fs::read_to_string(&manifest_path).unwrap();
+  assert!(
+    manifest_content.contains("subdir/test-id"),
+    "Manifest should contain output_hashes"
+  );
+}
+
+#[test]
 fn test_manifest_not_created_with_no_manifest_flag() {
   let temp_dir = create_temp_dir();
   let spec = r#"
