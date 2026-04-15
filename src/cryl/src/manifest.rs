@@ -91,25 +91,34 @@ impl Manifest {
 
   /// Record all files in the current directory as outputs
   pub fn record_all_outputs(&mut self) -> CrylResult<()> {
-    for entry in std::fs::read_dir(".")? {
-      let entry = entry?;
-      let path = entry.path();
+    fn go(this: &mut Manifest, dir: &str) -> CrylResult<()> {
+      for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
 
-      // Skip the manifest file itself
-      if path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .map(|n| n.starts_with("cryl-manifest"))
-        .unwrap_or(false)
-      {
-        continue;
+        // Skip the manifest file itself
+        if path
+          .file_name()
+          .and_then(|n| n.to_str())
+          .map(|n| n.starts_with("cryl-manifest"))
+          .unwrap_or(false)
+        {
+          continue;
+        }
+
+        if path.is_file() {
+          this.record_output(&path)?;
+        } else if path.is_dir()
+          && let Some(dir) = path.to_str()
+        {
+          go(this, dir)?;
+        }
       }
 
-      if path.is_file() {
-        self.record_output(&path)?;
-      }
+      Ok(())
     }
-    Ok(())
+
+    go(self, ".")
   }
 
   /// Save the manifest to a file
