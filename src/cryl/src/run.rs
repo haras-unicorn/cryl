@@ -4,7 +4,9 @@ use crate::dispatch::*;
 use crate::manifest::Manifest;
 use crate::schema::*;
 use crate::versions::tool_versions;
+use itertools::Itertools;
 use schemars::schema_for;
+use std::collections::HashMap;
 use std::io::{self, Read};
 use std::path::Path;
 
@@ -110,7 +112,22 @@ fn run(
   let manifest = if common.no_manifest {
     None
   } else {
-    Some(Manifest::new(spec_content, spec_format))
+    let cli_invocation = std::env::var("CRYL_CLI_INVOCATION")
+      .unwrap_or_else(|_| std::env::args().join(" "));
+    let environment = std::env::var("CRYL_ENVIRONMENT")
+      .ok()
+      .and_then(|cli_invocation| {
+        serde_json::from_str::<HashMap<String, String>>(&cli_invocation).ok()
+      })
+      .unwrap_or_else(|| std::env::vars().collect::<HashMap<_, _>>());
+    Some(Manifest::new(
+      &cli_invocation,
+      environment
+        .iter()
+        .map(|(key, value)| (key.as_str(), value.as_str())),
+      spec_content,
+      spec_format,
+    ))
   };
 
   // Validate import count
@@ -221,6 +238,12 @@ fn run_sandbox(
     "--setenv".to_string(),
     "CRYL_SANDBOX".to_string(),
     "1".to_string(),
+    "--setenv".to_string(),
+    "CRYL_CLI_INVOCATION".to_string(),
+    std::env::args().join(" "),
+    "--setenv".to_string(),
+    "CRYL_ENVIRONMENT".to_string(),
+    serde_json::to_string(&std::env::vars().collect::<HashMap<_, _>>())?,
     "--setenv".to_string(),
     "LC_ALL".to_string(),
     "C.UTF-8".to_string(),

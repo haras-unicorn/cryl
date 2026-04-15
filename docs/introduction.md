@@ -51,10 +51,14 @@ The manifest contains:
 
 - **cryl_version** - The version of cryl used
 - **timestamp** - When the run occurred (ISO 8601 / RFC 3339 format)
+- **cli_hash** - SHA256 hash of the CLI invocation in format
+  `<command> ...<args>` (space-delimited) before sandboxing
 - **spec_hash** - SHA256 hash of the input specification
 - **spec_format** - Format of the specification (json, yaml, toml)
-- **environment** - Map of tool names (openssl, ssh-keygen, etc.) to their
-  versions and paths
+- **tools** - Map of tool names (openssl, ssh-keygen, etc.) to their versions
+  and paths
+- **environment_hashes** - Map of environment variable names to their content
+  hashes before sandboxing
 - **output_hashes** - SHA256 hashes of all generated files
 
 You can control manifest creation with:

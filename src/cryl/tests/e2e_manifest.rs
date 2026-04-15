@@ -56,12 +56,24 @@ arguments.name = "test-id"
     "Manifest should contain timestamp"
   );
   assert!(
+    manifest_content.contains("environment_hashes"),
+    "Manifest should contain environment_hashes"
+  );
+  assert!(
+    manifest_content.contains("tools"),
+    "Manifest should contain tools"
+  );
+  assert!(
+    manifest_content.contains("cli_hash"),
+    "Manifest should contain cli_hash"
+  );
+  assert!(
     manifest_content.contains("spec_hash"),
     "Manifest should contain spec_hash"
   );
   assert!(
-    manifest_content.contains("environment"),
-    "Manifest should contain environment"
+    manifest_content.contains("spec_format"),
+    "Manifest should contain spec_format"
   );
   assert!(
     manifest_content.contains("output_hashes"),
@@ -104,7 +116,7 @@ arguments.name = "subdir/test-id"
   let manifest_content = fs::read_to_string(&manifest_path).unwrap();
   assert!(
     manifest_content.contains("subdir/test-id"),
-    "Manifest should contain output_hashes"
+    "Manifest should contain output_hashes from subdirs"
   );
 }
 
@@ -262,7 +274,7 @@ arguments.name = "test-id"
 }
 
 #[test]
-fn test_manifest_environment_contains_tools() {
+fn test_manifest_cli_hash_matches() {
   let temp_dir = create_temp_dir();
   let spec = r#"
 imports = []
@@ -291,12 +303,97 @@ arguments.name = "test-id"
   let manifest: serde_json::Value =
     serde_json::from_str(&manifest_content).unwrap();
 
-  // Verify environment contains tool info
-  let environment = manifest["environment"].as_object().unwrap();
-  assert!(!environment.is_empty(), "environment should contain tools");
+  // Verify cli_hash is present and non-empty
+  let cli_hash = manifest["cli_hash"].as_str().unwrap();
+  assert!(!cli_hash.is_empty(), "cli_hash should not be empty");
+  assert_eq!(
+    cli_hash.len(),
+    64,
+    "cli_hash should be 64 characters (SHA256 hex)"
+  );
+}
+
+#[test]
+fn test_manifest_environment_hashes_match() {
+  let temp_dir = create_temp_dir();
+  let spec = r#"
+imports = []
+exports = []
+
+[[generations]]
+generator = "id"
+arguments.name = "test-id"
+"#;
+  write_spec(temp_dir.path(), "spec.toml", spec);
+
+  let mut cmd = Command::cargo_bin("cryl").unwrap();
+  cmd
+    .current_dir(&temp_dir)
+    .arg("path")
+    .arg("--nosandbox")
+    .arg("--stay")
+    .arg("--keep")
+    .arg(temp_dir.path().join("spec.toml"));
+
+  cmd.assert().success();
+
+  // Read manifest
+  let manifest_path = temp_dir.path().join("cryl-manifest.json");
+  let manifest_content = fs::read_to_string(&manifest_path).unwrap();
+  let manifest: serde_json::Value =
+    serde_json::from_str(&manifest_content).unwrap();
+
+  // Verify spec_hash is present and non-empty
+  let environment_hashes = manifest["environment_hashes"].as_object().unwrap();
+  assert!(
+    !environment_hashes.is_empty(),
+    "spec_hash should not be empty"
+  );
+  for (_, value) in environment_hashes {
+    assert_eq!(
+      value.as_str().unwrap().len(),
+      64,
+      "environment_hashes value should be 64 characters (SHA256 hex)"
+    );
+  }
+}
+
+#[test]
+fn test_manifest_contains_tools() {
+  let temp_dir = create_temp_dir();
+  let spec = r#"
+imports = []
+exports = []
+
+[[generations]]
+generator = "id"
+arguments.name = "test-id"
+"#;
+  write_spec(temp_dir.path(), "spec.toml", spec);
+
+  let mut cmd = Command::cargo_bin("cryl").unwrap();
+  cmd
+    .current_dir(&temp_dir)
+    .arg("path")
+    .arg("--nosandbox")
+    .arg("--stay")
+    .arg("--keep")
+    .arg(temp_dir.path().join("spec.toml"));
+
+  cmd.assert().success();
+
+  // Read manifest
+  let manifest_path = temp_dir.path().join("cryl-manifest.json");
+  let manifest_content = fs::read_to_string(&manifest_path).unwrap();
+  let manifest: serde_json::Value =
+    serde_json::from_str(&manifest_content).unwrap();
+
+  // Verify manifest contains tool info
+  let tools = manifest["tools"].as_object().unwrap();
+  assert!(!tools.is_empty(), "Manifest should contain tools");
 
   // Check that openssl is recorded (should always be available)
-  if let Some(openssl) = environment.get("openssl") {
+  if let Some(openssl) = tools.get("openssl") {
     assert!(openssl.get("version").is_some(), "Tool should have version");
     assert!(openssl.get("path").is_some(), "Tool should have path");
   }

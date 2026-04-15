@@ -19,25 +19,40 @@ pub struct Manifest {
   pub cryl_version: String,
   /// Timestamp of when the manifest was created (ISO 8601 format)
   pub timestamp: String,
+  /// Map of environment variables to their SHA256 hashes
+  pub environment_hashes: HashMap<String, String>,
+  /// Map of tool names to their version information
+  pub tools: HashMap<String, ToolInfo>,
+  /// SHA256 hash of the command line invocation in format `<command> ...<args>` (space-delimited)
+  pub cli_hash: String,
   /// SHA256 hash of the input specification content
   pub spec_hash: String,
   /// Format of the specification (json, yaml, toml)
   pub spec_format: String,
-  /// Map of tool names to their version information
-  pub environment: HashMap<String, ToolInfo>,
   /// Map of output file paths to their SHA256 hashes
   pub output_hashes: HashMap<String, String>,
 }
 
 impl Manifest {
   /// Create a new manifest for the given specification
-  pub fn new(spec_content: &str, spec_format: Format) -> Self {
+  pub fn new<'a, E: Iterator<Item = (&'a str, &'a str)>>(
+    cli_invocation: &str,
+    environment: E,
+    spec_content: &str,
+    spec_format: Format,
+  ) -> Self {
     Self {
       cryl_version: cryl_version().to_string(),
       timestamp: chrono::Utc::now().to_rfc3339(),
+      environment_hashes: environment
+        .map(|(key, value)| {
+          (key.to_string(), Self::compute_hash(value.as_bytes()))
+        })
+        .collect::<HashMap<_, _>>(),
+      tools: HashMap::new(),
+      cli_hash: Self::compute_hash(cli_invocation.as_bytes()),
       spec_hash: Self::compute_hash(spec_content.as_bytes()),
       spec_format: format!("{:?}", spec_format).to_lowercase(),
-      environment: HashMap::new(),
       output_hashes: HashMap::new(),
     }
   }
@@ -65,7 +80,7 @@ impl Manifest {
         .map(|v| v.to_string())
         .unwrap_or_else(|| "unknown".to_string());
 
-      self.environment.insert(
+      self.tools.insert(
         tool.to_string(),
         ToolInfo {
           version,
@@ -143,20 +158,24 @@ mod tests {
 
   #[test]
   fn test_manifest_new() {
-    let manifest = Manifest::new("test spec", Format::Json);
+    let manifest =
+      Manifest::new("cryl", [].into_iter(), "test spec", Format::Json);
+    assert!(manifest.environment_hashes.is_empty());
+    assert!(manifest.tools.is_empty());
+    assert!(!manifest.cli_hash.is_empty());
     assert!(!manifest.cryl_version.is_empty());
     assert!(!manifest.timestamp.is_empty());
     assert!(!manifest.spec_hash.is_empty());
     assert_eq!(manifest.spec_format, "json");
-    assert!(manifest.environment.is_empty());
     assert!(manifest.output_hashes.is_empty());
   }
 
   #[test]
   fn test_record_tool() {
-    let mut manifest = Manifest::new("test", Format::Json);
+    let mut manifest =
+      Manifest::new("cryl", [].into_iter(), "test", Format::Json);
     manifest.record_tool("openssl");
     // In dev environment, version will be "dev" or "unknown"
-    assert!(manifest.environment.contains_key("openssl"));
+    assert!(manifest.tools.contains_key("openssl"));
   }
 }
