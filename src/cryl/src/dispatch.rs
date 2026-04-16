@@ -42,6 +42,9 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
       &PathBuf::from_str(file)?,
       allow_fail.unwrap_or(false),
     ),
+    Import::WorkingDirectory {
+      arguments: WorkingDirectoryImportArgs { path },
+    } => importers::import_working_directory(Path::new(&path)),
   }
 }
 
@@ -604,8 +607,6 @@ pub fn run_generate_spec(
     } => {
       // Change working directory by creating the directory
       generators::generate_working_directory(Path::new(&path))?;
-      // Actually change the process working directory
-      std::env::set_current_dir(path)?;
       Ok(())
     }
   }
@@ -622,6 +623,9 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
     Export::VaultFile {
       arguments: VaultFileExportArgs { path, file },
     } => exporters::export_vault_file(path, &PathBuf::from_str(file)?),
+    Export::WorkingDirectory {
+      arguments: WorkingDirectoryExportArgs { path },
+    } => exporters::export_working_directory(Path::new(&path)),
   }
 }
 
@@ -647,6 +651,9 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
       allow_fail,
     } => {
       importers::import_vault_file(path, &PathBuf::from_str(file)?, *allow_fail)
+    }
+    ImportCommands::WorkingDirectory { path } => {
+      importers::import_working_directory(path)
     }
   }
 }
@@ -975,8 +982,6 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
     GenerateCommands::WorkingDirectory { path } => {
       // Change working directory by creating the directory
       generators::generate_working_directory(path)?;
-      // Actually change the process working directory
-      std::env::set_current_dir(path)?;
       Ok(())
     }
   }
@@ -990,6 +995,9 @@ pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
     }
     ExportCommands::VaultFile { path, file } => {
       exporters::export_vault_file(path, &PathBuf::from_str(file)?)
+    }
+    ExportCommands::WorkingDirectory { path } => {
+      exporters::export_working_directory(path)
     }
   }
 }

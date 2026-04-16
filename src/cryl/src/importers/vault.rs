@@ -135,7 +135,8 @@ mod tests {
   use tempfile::TempDir;
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_import_vault_with_real_vault() -> anyhow::Result<()> {
     let _container = vault_container("vault-import-test").await?;
     let key = "kv/my-app";
@@ -150,6 +151,7 @@ mod tests {
 
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
     import_vault(key, None, false)?;
 
@@ -157,11 +159,14 @@ mod tests {
     let result = std::fs::read_to_string(file)?;
     assert_eq!(result, content);
 
+    std::env::set_current_dir(cwd)?;
+
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_import_vault_multiple_with_real_vault() -> anyhow::Result<()> {
     let _container = vault_container("vault-file-test").await?;
     let key = "kv/my-app";
@@ -184,6 +189,7 @@ mod tests {
 
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
     import_vault(key, None, false)?;
 
@@ -195,24 +201,31 @@ mod tests {
     let result = std::fs::read_to_string(second_file)?;
     assert_eq!(result, second_content);
 
+    std::env::set_current_dir(cwd)?;
+
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_import_vault_missing_path_allow_fail() -> anyhow::Result<()> {
     let _container = vault_container("vault-missing-test").await?;
 
     // Test random non-existent key
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
     import_vault("kv/nonexistent", None, true)?;
+
+    std::env::set_current_dir(cwd)?;
 
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_import_vault_subdir_with_real_vault() -> anyhow::Result<()> {
     let _container = vault_container("vault-import-test").await?;
     let key = "kv/my-app";
@@ -229,12 +242,15 @@ mod tests {
 
     // Now test import_vault using medusa (which uses Vault API)
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
     import_vault(key, Some(&dir), false)?;
 
     // Check file content is ok
     let result = std::fs::read_to_string(dest)?;
     assert_eq!(result, content);
+
+    std::env::set_current_dir(cwd)?;
 
     Ok(())
   }

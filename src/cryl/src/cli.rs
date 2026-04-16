@@ -171,6 +171,13 @@ pub enum ImportCommands {
     #[arg(long)]
     allow_fail: bool,
   },
+
+  /// Change working directory for imports
+  #[command(name = "working-directory")]
+  WorkingDirectory {
+    /// Path to the new working directory
+    path: PathBuf,
+  },
 }
 
 #[derive(Subcommand, Debug)]
@@ -741,6 +748,13 @@ pub enum ExportCommands {
     path: String,
     /// Local file to export
     file: String,
+  },
+
+  /// Change working directory for exports
+  #[command(name = "working-directory")]
+  WorkingDirectory {
+    /// Path to the new working directory
+    path: PathBuf,
   },
 }
 

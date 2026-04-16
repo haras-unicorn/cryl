@@ -37,5 +37,13 @@ Uses [Vault] CLI to import a single file from [Vault].
   - `file` (`string`): Key of the file to load.
   - `allow_fail` (`boolean`, `= false`): Allow failing to load file.
 
+## Working directory
+
+Changes the working directory optionally creating it if it doesn't exist.
+
+- Type: `working-directory`
+- Arguments:
+  - `path` (`path`): Path to the new working directory (relative to current).
+
 [`medusa`]: https://github.com/jonasvinther/medusa
 [Vault]: https://www.vaultproject.io/

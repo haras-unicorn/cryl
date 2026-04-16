@@ -111,11 +111,13 @@ mod tests {
   use tempfile::TempDir;
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_export_vault_success() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-test").await?;
 
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
 
     // Create test files
@@ -141,29 +143,37 @@ mod tests {
     assert_eq!(json["data"]["data"]["secret.txt"], "top-secret");
     assert_eq!(json["data"]["data"]["config.yaml"], "port: 8080");
 
+    std::env::set_current_dir(cwd)?;
+
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_export_vault_empty_directory() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-empty-test").await?;
 
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
 
     // Export from empty directory should succeed
     super::export_vault("kv/empty-app", None)?;
 
+    std::env::set_current_dir(cwd)?;
+
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_export_vault_with_trailing_slash() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-slash-test").await?;
 
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
 
     std::fs::write("data.txt", "test-data")?;
@@ -179,11 +189,14 @@ mod tests {
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"]["data.txt"], "test-data");
 
+    std::env::set_current_dir(cwd)?;
+
     Ok(())
   }
 
   #[tokio::test]
-  #[serial]
+  #[serial(environment)]
+  #[serial(working_directory)]
   async fn test_export_vault_subdir() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-subdir-test").await?;
     let dir = PathBuf::from_str("subdir").unwrap();
@@ -196,6 +209,7 @@ mod tests {
     let key = "kv/my-app";
 
     let temp_dir = TempDir::new()?;
+    let cwd = std::env::current_dir()?;
     std::env::set_current_dir(&temp_dir)?;
 
     // Create test files
@@ -221,6 +235,8 @@ mod tests {
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"][first_key], first_content);
     assert_eq!(json["data"]["data"][second_key], second_content);
+
+    std::env::set_current_dir(cwd)?;
 
     Ok(())
   }

@@ -40,7 +40,7 @@ Notes:
 
 ## Vault file
 
-Sends one file’s contents into [Vault] KV:
+Sends one file's contents into [Vault] KV:
 
 - writes to `<path>/current`
 - also snapshots to `<path>/<timestamp>`
@@ -49,6 +49,14 @@ Sends one file’s contents into [Vault] KV:
 - Arguments:
   - `path` (`string`): Base KV path. Slashes trimmed.
   - `file` (`string`): Local file whose content becomes the value.
+
+## Working directory
+
+Changes the working directory optionally creating it if it doesn't exist.
+
+- Type: `working-directory`
+- Arguments:
+  - `path` (`path`): Path to the new working directory (relative to current).
 
 [`medusa`]: https://github.com/jonasvinther/medusa
 [Vault]: https://www.vaultproject.io/

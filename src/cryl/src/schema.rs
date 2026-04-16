@@ -24,6 +24,11 @@ pub enum Import {
   VaultFile { arguments: VaultFileImportArgs },
   /// Copy a file from local filesystem.
   Copy { arguments: CopyImportArgs },
+  /// Change working directory for subsequent import operations.
+  #[serde(rename = "working-directory")]
+  WorkingDirectory {
+    arguments: WorkingDirectoryImportArgs,
+  },
 }
 
 /// Secret generation operation.
@@ -108,6 +113,11 @@ pub enum Export {
   VaultFile { arguments: VaultFileExportArgs },
   /// Copy file to local filesystem.
   Copy { arguments: CopyExportArgs },
+  /// Change working directory for subsequent export operations.
+  #[serde(rename = "working-directory")]
+  WorkingDirectory {
+    arguments: WorkingDirectoryExportArgs,
+  },
 }
 
 /// Arguments for Vault KV import.
@@ -493,4 +503,18 @@ pub struct CopyExportArgs {
   pub from: String,
   /// Destination file path.
   pub to: String,
+}
+
+/// Arguments for working directory change during import phase.
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
+pub struct WorkingDirectoryImportArgs {
+  /// Path to the new working directory.
+  pub path: String,
+}
+
+/// Arguments for working directory change during export phase.
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
+pub struct WorkingDirectoryExportArgs {
+  /// Path to the new working directory.
+  pub path: String,
 }

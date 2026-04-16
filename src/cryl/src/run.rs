@@ -172,10 +172,14 @@ fn run(
   for import in spec.imports.iter() {
     run_import_spec(import)?;
   }
+  // In case the working-directory importer left it in some other directory
+  std::env::set_current_dir(&working_directory)?;
 
   for generation in spec.generations.iter() {
     run_generate_spec(generation, common.allow_script)?;
   }
+  // In case the working-directory generator left it in some other directory
+  std::env::set_current_dir(&working_directory)?;
 
   if common.dry_run {
     return Ok(());
@@ -184,9 +188,8 @@ fn run(
   for export in spec.exports.iter() {
     run_export_spec(export)?;
   }
-
-  // In case the working-directory generator left it in some other directory
-  std::env::set_current_dir(working_directory)?;
+  // In case the working-directory exporter left it in some other directory
+  std::env::set_current_dir(&working_directory)?;
 
   // Save manifest on successful completion
   if let Some(mut manifest) = manifest {

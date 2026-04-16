@@ -358,6 +358,23 @@
             "exporter",
             "arguments"
           ]
+        },
+        {
+          "description": "Change working directory for subsequent export operations.",
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/WorkingDirectoryExportArgs"
+            },
+            "exporter": {
+              "type": "string",
+              "const": "working-directory"
+            }
+          },
+          "required": [
+            "exporter",
+            "arguments"
+          ]
         }
       ]
     },
@@ -986,6 +1003,23 @@
             "importer": {
               "type": "string",
               "const": "copy"
+            }
+          },
+          "required": [
+            "importer",
+            "arguments"
+          ]
+        },
+        {
+          "description": "Change working directory for subsequent import operations.",
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/WorkingDirectoryImportArgs"
+            },
+            "importer": {
+              "type": "string",
+              "const": "working-directory"
             }
           },
           "required": [
@@ -1709,6 +1743,32 @@
     },
     "WorkingDirectoryArgs": {
       "description": "Arguments for working directory change.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Path to the new working directory.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "WorkingDirectoryExportArgs": {
+      "description": "Arguments for working directory change during export phase.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Path to the new working directory.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "WorkingDirectoryImportArgs": {
+      "description": "Arguments for working directory change during import phase.",
       "type": "object",
       "properties": {
         "path": {
