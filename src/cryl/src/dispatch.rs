@@ -599,6 +599,15 @@ pub fn run_generate_spec(
         renew.unwrap_or(false),
       )
     }
+    Generation::WorkingDirectory {
+      arguments: WorkingDirectoryArgs { path },
+    } => {
+      // Change working directory by creating the directory
+      generators::generate_working_directory(Path::new(&path))?;
+      // Actually change the process working directory
+      std::env::set_current_dir(path)?;
+      Ok(())
+    }
   }
 }
 
@@ -962,6 +971,13 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       renew,
     } => {
       generators::generate_sops(age, public, private, format, values, *renew)
+    }
+    GenerateCommands::WorkingDirectory { path } => {
+      // Change working directory by creating the directory
+      generators::generate_working_directory(path)?;
+      // Actually change the process working directory
+      std::env::set_current_dir(path)?;
+      Ok(())
     }
   }
 }

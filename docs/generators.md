@@ -23,6 +23,14 @@ Writes a text file during generation.
   - `text` (`string`): Text content to write.
   - `renew` (`boolean`, `= false`): Overwrite the destination if it exists.
 
+## Working directory
+
+Changes the working directory optionally creating it if it doesn't exist.
+
+- Type: `working-directory`
+- Arguments:
+  - `path` (`path`): Destination working directory
+
 ## JSON
 
 Generates a JSON file from input data.

@@ -30,6 +30,7 @@ mod tls_rsa_leaf;
 mod tls_rsa_root;
 mod toml;
 mod wireguard_key;
+mod working_directory;
 mod yaml;
 
 pub use age_key::*;
@@ -62,4 +63,5 @@ pub use tls_rsa_leaf::*;
 pub use tls_rsa_root::*;
 pub use toml::*;
 pub use wireguard_key::*;
+pub use working_directory::*;
 pub use yaml::*;
