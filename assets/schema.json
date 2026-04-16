@@ -890,6 +890,23 @@
             "generator",
             "arguments"
           ]
+        },
+        {
+          "description": "Change working directory for subsequent operations.",
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/WorkingDirectoryArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "working-directory"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
         }
       ]
     },
@@ -1688,6 +1705,19 @@
       "required": [
         "public",
         "private"
+      ]
+    },
+    "WorkingDirectoryArgs": {
+      "description": "Arguments for working directory change.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Path to the new working directory.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
       ]
     }
   }

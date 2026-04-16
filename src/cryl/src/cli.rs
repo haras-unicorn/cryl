@@ -707,6 +707,13 @@ pub enum GenerateCommands {
     #[arg(long)]
     renew: bool,
   },
+
+  /// Change working directory
+  #[command(name = "working-directory")]
+  WorkingDirectory {
+    /// Path to the new working directory
+    path: PathBuf,
+  },
 }
 
 #[derive(Subcommand, Debug)]

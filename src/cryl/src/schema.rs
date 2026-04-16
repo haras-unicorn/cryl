@@ -93,6 +93,9 @@ pub enum Generation {
   Script { arguments: ScriptArgs },
   /// Generate SOPS‑encrypted YAML with Age recipients.
   Sops { arguments: SopsArgs },
+  /// Change working directory for subsequent operations.
+  #[serde(rename = "working-directory")]
+  WorkingDirectory { arguments: WorkingDirectoryArgs },
 }
 
 /// Export operation - pushes generated secrets to external systems.
@@ -456,6 +459,13 @@ pub struct SopsArgs {
   pub secrets: serde_json::Value,
   /// Overwrite both public and private files.
   pub renew: Option<bool>,
+}
+
+/// Arguments for working directory change.
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
+pub struct WorkingDirectoryArgs {
+  /// Path to the new working directory.
+  pub path: String,
 }
 
 /// Arguments for Vault KV export.
