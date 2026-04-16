@@ -48,6 +48,9 @@ pub enum CrylError {
 
   #[error("Infallible: {0}")]
   Infallible(#[from] std::convert::Infallible),
+
+  #[error("No working directory")]
+  WorkingDirectory,
 }
 
 /// Result type alias for cryl operations
