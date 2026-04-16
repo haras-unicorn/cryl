@@ -108,6 +108,14 @@ fn run(
     );
   }
 
+  // Record for manifest for hash if not in sandbox
+  // and to save it in the original working directory
+  let working_directory = std::env::current_dir()
+    .ok()
+    .and_then(|path| path.canonicalize().ok())
+    .map(|path| path.to_string_lossy().to_string())
+    .ok_or(CrylError::WorkingDirectory)?;
+
   // Create manifest if not disabled
   let manifest = if common.no_manifest {
     None
@@ -120,8 +128,12 @@ fn run(
         serde_json::from_str::<HashMap<String, String>>(&cli_invocation).ok()
       })
       .unwrap_or_else(|| std::env::vars().collect::<HashMap<_, _>>());
+    let working_directory = std::env::var("CRYL_WORKING_DIRECTORY")
+      .ok()
+      .unwrap_or(working_directory.clone());
     Some(Manifest::new(
       &cli_invocation,
+      &working_directory,
       environment
         .iter()
         .map(|(key, value)| (key.as_str(), value.as_str())),
@@ -172,6 +184,9 @@ fn run(
   for export in spec.exports.iter() {
     run_export_spec(export)?;
   }
+
+  // In case the working-directory generator left it in some other directory
+  std::env::set_current_dir(working_directory)?;
 
   // Save manifest on successful completion
   if let Some(mut manifest) = manifest {
@@ -241,6 +256,12 @@ fn run_sandbox(
     "--setenv".to_string(),
     "CRYL_CLI_INVOCATION".to_string(),
     std::env::args().join(" "),
+    "--setenv".to_string(),
+    "CRYL_WORKING_DIRECTORY".to_string(),
+    std::env::current_dir()?
+      .canonicalize()?
+      .to_string_lossy()
+      .to_string(),
     "--setenv".to_string(),
     "CRYL_ENVIRONMENT".to_string(),
     serde_json::to_string(&std::env::vars().collect::<HashMap<_, _>>())?,

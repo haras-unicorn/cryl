@@ -53,6 +53,8 @@ The manifest contains:
 - **timestamp** - When the run occurred (ISO 8601 / RFC 3339 format)
 - **cli_hash** - SHA256 hash of the CLI invocation in format
   `<command> ...<args>` (space-delimited) before sandboxing
+- **working_directory_hash** - SHA256 hash of the canonicalized working
+  directory before sandboxing
 - **spec_hash** - SHA256 hash of the input specification
 - **spec_format** - Format of the specification (json, yaml, toml)
 - **tools** - Map of tool names (openssl, ssh-keygen, etc.) to their versions

@@ -23,6 +23,8 @@ pub struct Manifest {
   pub environment_hashes: HashMap<String, String>,
   /// Map of tool names to their version information
   pub tools: HashMap<String, ToolInfo>,
+  /// SHA256 of the canonicalized working directory
+  pub working_directory_hash: String,
   /// SHA256 hash of the command line invocation in format `<command> ...<args>` (space-delimited)
   pub cli_hash: String,
   /// SHA256 hash of the input specification content
@@ -37,11 +39,13 @@ impl Manifest {
   /// Create a new manifest for the given specification
   pub fn new<'a, E: Iterator<Item = (&'a str, &'a str)>>(
     cli_invocation: &str,
+    working_directory: &str,
     environment: E,
     spec_content: &str,
     spec_format: Format,
   ) -> Self {
     Self {
+      working_directory_hash: Self::compute_hash(working_directory.as_bytes()),
       cryl_version: cryl_version().to_string(),
       timestamp: chrono::Utc::now().to_rfc3339(),
       environment_hashes: environment
@@ -150,7 +154,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_compute_hash() {
+  fn test_manifest_compute_hash() {
     let data = b"test data";
     let hash = Manifest::compute_hash(data);
     assert_eq!(hash.len(), 64); // SHA256 hex is 64 chars
@@ -159,10 +163,11 @@ mod tests {
   #[test]
   fn test_manifest_new() {
     let manifest =
-      Manifest::new("cryl", [].into_iter(), "test spec", Format::Json);
+      Manifest::new("cryl", "/work", [].into_iter(), "test spec", Format::Json);
     assert!(manifest.environment_hashes.is_empty());
     assert!(manifest.tools.is_empty());
     assert!(!manifest.cli_hash.is_empty());
+    assert!(!manifest.working_directory_hash.is_empty());
     assert!(!manifest.cryl_version.is_empty());
     assert!(!manifest.timestamp.is_empty());
     assert!(!manifest.spec_hash.is_empty());
@@ -171,9 +176,9 @@ mod tests {
   }
 
   #[test]
-  fn test_record_tool() {
+  fn test_manifest_record_tool() {
     let mut manifest =
-      Manifest::new("cryl", [].into_iter(), "test", Format::Json);
+      Manifest::new("cryl", "/work", [].into_iter(), "test", Format::Json);
     manifest.record_tool("openssl");
     // In dev environment, version will be "dev" or "unknown"
     assert!(manifest.tools.contains_key("openssl"));

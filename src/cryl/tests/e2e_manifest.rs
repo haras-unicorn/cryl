@@ -68,6 +68,10 @@ arguments.name = "test-id"
     "Manifest should contain cli_hash"
   );
   assert!(
+    manifest_content.contains("working_directory_hash"),
+    "Manifest should contain working_directory_hash"
+  );
+  assert!(
     manifest_content.contains("spec_hash"),
     "Manifest should contain spec_hash"
   );
@@ -310,6 +314,50 @@ arguments.name = "test-id"
     cli_hash.len(),
     64,
     "cli_hash should be 64 characters (SHA256 hex)"
+  );
+}
+
+#[test]
+fn test_manifest_working_directory_hash_matches() {
+  let temp_dir = create_temp_dir();
+  let spec = r#"
+imports = []
+exports = []
+
+[[generations]]
+generator = "id"
+arguments.name = "test-id"
+"#;
+  write_spec(temp_dir.path(), "spec.toml", spec);
+
+  let mut cmd = Command::cargo_bin("cryl").unwrap();
+  cmd
+    .current_dir(&temp_dir)
+    .arg("path")
+    .arg("--nosandbox")
+    .arg("--stay")
+    .arg("--keep")
+    .arg(temp_dir.path().join("spec.toml"));
+
+  cmd.assert().success();
+
+  // Read manifest
+  let manifest_path = temp_dir.path().join("cryl-manifest.json");
+  let manifest_content = fs::read_to_string(&manifest_path).unwrap();
+  let manifest: serde_json::Value =
+    serde_json::from_str(&manifest_content).unwrap();
+
+  // Verify working_directory_hash is present and non-empty
+  let working_directory_hash =
+    manifest["working_directory_hash"].as_str().unwrap();
+  assert!(
+    !working_directory_hash.is_empty(),
+    "working_directory_hash should not be empty"
+  );
+  assert_eq!(
+    working_directory_hash.len(),
+    64,
+    "working_directory_hash should be 64 characters (SHA256 hex)"
   );
 }
 
