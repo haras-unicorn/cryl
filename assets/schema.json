@@ -277,6 +277,76 @@
         "name"
       ]
     },
+    "DirectoryListing": {
+      "oneOf": [
+        {
+          "description": "List only files in current directory",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "flat"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "description": "List files in current directory and subdirectories recursively",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "deep"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "description": "Checks that files in the current directory or subdirectories exist",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "list"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        },
+        {
+          "description": "Check that file values in the current directory or subdirectories exist",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "map"
+            },
+            "value": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ]
+        }
+      ]
+    },
     "EnvArgs": {
       "description": "Arguments for environment (.env) file generation.",
       "type": "object",
@@ -293,11 +363,8 @@
           ]
         },
         "variables": {
-          "description": "Key‑value pairs; values can be strings or file paths.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "description": "Variables to substitute with file contents; file paths will be transformed to screaming snake case",
+          "$ref": "#/$defs/DirectoryListing"
         }
       },
       "required": [
@@ -862,11 +929,11 @@
           "type": "object",
           "properties": {
             "arguments": {
-              "$ref": "#/$defs/MoustacheArgs"
+              "$ref": "#/$defs/MustacheArgs"
             },
             "generator": {
               "type": "string",
-              "const": "moustache"
+              "const": "mustache"
             }
           },
           "required": [
@@ -1103,10 +1170,14 @@
         "threshold"
       ]
     },
-    "MoustacheArgs": {
+    "MustacheArgs": {
       "description": "Arguments for Mustache template generation.",
       "type": "object",
       "properties": {
+        "listing": {
+          "description": "Variables to substitute with file contents; file paths will be transformed to screaming snake case",
+          "$ref": "#/$defs/DirectoryListing"
+        },
         "name": {
           "description": "Base name for output files (‑variables, ‑template suffixes added).",
           "type": "string"
@@ -1121,19 +1192,12 @@
         "template": {
           "description": "Mustache template content.",
           "type": "string"
-        },
-        "variables": {
-          "description": "Variables to substitute; values can be strings or file paths.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
         }
       },
       "required": [
         "name",
         "template",
-        "variables"
+        "listing"
       ]
     },
     "NebulaCaArgs": {
@@ -1332,7 +1396,8 @@
           ]
         },
         "secrets": {
-          "description": "Secret key‑value pairs; values can be strings or file paths."
+          "description": "Secrets to substitute with file contents; file paths will be transformed to kebab case",
+          "$ref": "#/$defs/DirectoryListing"
         }
       },
       "required": [
@@ -1630,12 +1695,9 @@
       "description": "Arguments for Vault KV export.",
       "type": "object",
       "properties": {
-        "dir": {
-          "description": "Directory from to export (default is current directory)",
-          "type": [
-            "string",
-            "null"
-          ]
+        "listing": {
+          "description": "Directory listing type",
+          "$ref": "#/$defs/DirectoryListing"
         },
         "path": {
           "description": "Base Vault KV path (e.g., \"kv/my‑app\").",
@@ -1643,7 +1705,8 @@
         }
       },
       "required": [
-        "path"
+        "path",
+        "listing"
       ]
     },
     "VaultFileExportArgs": {
@@ -1697,13 +1760,6 @@
           "description": "If true, missing source does not cause failure.",
           "type": [
             "boolean",
-            "null"
-          ]
-        },
-        "dir": {
-          "description": "Directory in which to import (default is current directory)",
-          "type": [
-            "string",
             "null"
           ]
         },

@@ -92,25 +92,16 @@ pub fn generate_nebula_cert(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::common::mock_nebula_ca;
   use std::os::unix::fs::PermissionsExt;
   use tempfile::TempDir;
-
-  use crate::generators::generate_nebula_ca;
 
   #[test]
   fn test_generate_nebula_cert_success() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     // Now generate a node cert
     let node_public_path = temp.path().join("node.crt");
@@ -158,15 +149,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     // Generate a node cert with different IP/CIDR
     let node_public_path = temp.path().join("node.crt");
@@ -198,15 +181,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     let node_public_path = temp.path().join("node.crt");
     let node_private_path = temp.path().join("node.key");
@@ -240,15 +215,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     let node_public_path = temp.path().join("node.crt");
     let node_private_path = temp.path().join("node.key");
@@ -283,15 +250,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // Create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     // Generate two different node certs
     let node1_public_path = temp.path().join("node1.crt");
@@ -367,15 +326,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("subdir1").join("ca.crt");
-    let ca_private_path = temp.path().join("subdir2").join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     // Now generate a node cert
     let node_public_path = temp.path().join("node.crt");
@@ -423,15 +374,7 @@ mod tests {
     let temp = TempDir::new()?;
 
     // First, create a CA
-    let ca_public_path = temp.path().join("ca.crt");
-    let ca_private_path = temp.path().join("ca.key");
-    generate_nebula_ca(
-      "Test CA",
-      &ca_public_path,
-      &ca_private_path,
-      3650,
-      true,
-    )?;
+    let (ca_public_path, ca_private_path) = mock_nebula_ca(temp.path())?;
 
     // Now generate a node cert
     let node_public_path = temp.path().join("subdir1").join("node.crt");

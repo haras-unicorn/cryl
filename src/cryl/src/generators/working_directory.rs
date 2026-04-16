@@ -22,6 +22,7 @@ pub fn generate_working_directory(path: &Path) -> CrylResult<()> {
 
 #[cfg(test)]
 mod tests {
+  use crate::common::TempCurrentDir;
   use crate::generators::generate_text;
 
   use super::*;
@@ -32,29 +33,29 @@ mod tests {
   #[test]
   #[serial(working_directory)]
   fn test_generate_working_directory_creates_dir() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let new_dir = temp.path().join("new_workdir");
-    let cwd = std::env::current_dir().unwrap();
 
     generate_working_directory(&new_dir).unwrap();
 
     assert!(new_dir.exists());
     assert!(new_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), new_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_working_directory_generates_in_new_working_directory() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let new_dir = temp.path().join("new_workdir");
     let text_file_name = "text";
     let text_file_content = "my text";
     let text_file_path = new_dir.join(text_file_name);
     let text_file_relative_path = PathBuf::from_str(text_file_name).unwrap();
-    let cwd = std::env::current_dir().unwrap();
 
     // Check that it isn't somehow the absolute path
     assert_eq!(text_file_relative_path.to_str().unwrap(), text_file_name);
@@ -70,32 +71,30 @@ mod tests {
       std::fs::read_to_string(&text_file_path).unwrap(),
       text_file_content
     );
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_working_directory_nested() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let nested_dir = temp.path().join("a").join("b").join("c");
-    let cwd = std::env::current_dir().unwrap();
 
     generate_working_directory(&nested_dir).unwrap();
 
     assert!(nested_dir.exists());
     assert!(nested_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), nested_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_working_directory_already_exists() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let existing_dir = temp.path().join("existing");
-    let cwd = std::env::current_dir().unwrap();
 
     // Create the directory first
     fs::create_dir(&existing_dir).unwrap();
@@ -106,24 +105,21 @@ mod tests {
     assert!(existing_dir.exists());
     assert!(existing_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), existing_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_working_directory_absolute_path() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     // Use absolute path instead of relative to avoid changing working directories
     let abs_dir = temp.path().canonicalize().unwrap().join("absolute_subdir");
-    let cwd = std::env::current_dir().unwrap();
 
     generate_working_directory(&abs_dir).unwrap();
 
     assert!(abs_dir.exists());
     assert!(abs_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), abs_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 }

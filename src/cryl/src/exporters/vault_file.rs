@@ -5,7 +5,6 @@ use std::path::Path;
 pub fn export_vault_file(path: &str, file: &Path) -> CrylResult<()> {
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
-  let full_path = format!("{}/current", trimmed_path);
 
   // Extract last component now to exit early
   // and because the file might be under a subdirectory
@@ -37,7 +36,7 @@ pub fn export_vault_file(path: &str, file: &Path) -> CrylResult<()> {
   let output = std::process::Command::new("vault")
     .arg("kv")
     .arg("put")
-    .arg(&full_path)
+    .arg(trimmed_path)
     .arg(format!("{}={}", last_component, content))
     .output()
     .map_err(|e| CrylError::Export {
@@ -83,7 +82,7 @@ mod tests {
 
     // Verify using vault CLI
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/my-app/current"])
+      .args(["kv", "get", "-format=json", "kv/my-app"])
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
@@ -128,7 +127,7 @@ mod tests {
 
     // Verify
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/team/project/env/current"])
+      .args(["kv", "get", "-format=json", "kv/team/project/env"])
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
@@ -154,7 +153,7 @@ mod tests {
 
     // Verify
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/my-app/current"])
+      .args(["kv", "get", "-format=json", "kv/my-app"])
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
@@ -178,7 +177,7 @@ mod tests {
 
     // Verify initial value
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/overwrite-app/current"])
+      .args(["kv", "get", "-format=json", "kv/overwrite-app"])
       .output()?;
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"][file_name], "initial");
@@ -189,7 +188,7 @@ mod tests {
 
     // Verify updated value
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/overwrite-app/current"])
+      .args(["kv", "get", "-format=json", "kv/overwrite-app"])
       .output()?;
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"][file_name], "updated");
@@ -218,7 +217,7 @@ mod tests {
 
     // Verify using vault CLI
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", &format!("{path}/current")])
+      .args(["kv", "get", "-format=json", path])
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;

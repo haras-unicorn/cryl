@@ -100,6 +100,7 @@ imports = []
 [[exports]]
 exporter = "vault"
 arguments.path = "kv/exported-app"
+arguments.listing.type = "flat"
 
 [[generations]]
 generator = "text"
@@ -131,7 +132,7 @@ arguments.text = "my-secret-key-123"
 
   // Verify they were exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/exported-app/current"])
+    .args(["kv", "get", "-format=json", "kv/exported-app"])
     .output()
     .expect("Failed to get vault data");
 
@@ -191,7 +192,7 @@ arguments.text = "master-secret-value-xyz789"
 
   // Verify it was exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/single-secret/current"])
+    .args(["kv", "get", "-format=json", "kv/single-secret"])
     .output()
     .expect("Failed to get vault data");
 
@@ -224,6 +225,7 @@ imports = []
 [[exports]]
 exporter = "vault"
 arguments.path = "kv/multi-export"
+arguments.listing.type = "flat"
 
 [[generations]]
 generator = "id"
@@ -262,7 +264,7 @@ arguments.value = { timeout = 30, retries = 3 }
 
   // Verify they were exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/multi-export/current"])
+    .args(["kv", "get", "-format=json", "kv/multi-export"])
     .output()
     .expect("Failed to get vault data");
 
@@ -306,6 +308,7 @@ imports = []
 [[exports]]
 exporter = "vault"
 arguments.path = "kv/dry-run-app"
+arguments.listing.type = "flat"
 
 [[generations]]
 generator = "text"
@@ -332,7 +335,7 @@ arguments.text = "should-not-be-exported"
 
   // But should NOT be exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/dry-run-app/current"])
+    .args(["kv", "get", "-format=json", "kv/dry-run-app"])
     .output()
     .expect("Failed to get vault data");
 
@@ -388,7 +391,7 @@ arguments.value = { database = { host = "localhost", port = 5432 }, cache = { en
 
   // Verify it was exported to vault
   let output = StdCommand::new("vault")
-    .args(["kv", "get", "-format=json", "kv/json-export/current"])
+    .args(["kv", "get", "-format=json", "kv/json-export"])
     .output()
     .expect("Failed to get vault data");
 

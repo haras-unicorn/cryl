@@ -110,45 +110,19 @@ pub fn generate_cockroach_client_cert(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::common::{TempCurrentDir, is_ci, mock_cockroach_ca};
   use serial_test::serial;
   use std::os::unix::fs::PermissionsExt;
-  use tempfile::TempDir;
-
-  /// Skip tests in CI environments.
-  ///
-  /// CockroachDB in nixpkgs is wrapped with bubblewrap (bwrap) to create an FHS
-  /// environment. The wrapper uses `--chdir "$(pwd)"` which fails in CI because:
-  /// - Tests use `tempfile::TempDir` which creates temp dirs (often in `/tmp`)
-  /// - The bwrap wrapper auto-mounts directories, but temp dirs in `/tmp` may
-  ///   not be accessible within the sandbox
-  /// - When cockroach tries to run, it cannot access the current working directory
-  fn skip_in_ci() -> bool {
-    std::env::var("CI").is_ok()
-  }
-
-  fn create_test_ca(
-    temp: &TempDir,
-  ) -> anyhow::Result<(std::path::PathBuf, std::path::PathBuf)> {
-    use crate::generators::generate_cockroach_ca;
-
-    let ca_public = temp.path().join("ca.crt");
-    let ca_private = temp.path().join("ca.key");
-
-    generate_cockroach_ca(&ca_public, &ca_private, true)?;
-
-    Ok((ca_public, ca_private))
-  }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_success() -> anyhow::Result<()> {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path = temp.path().join("client.crt");
     let private_path = temp.path().join("client.key");
@@ -192,8 +166,6 @@ mod tests {
     let public_perms = public_metadata.permissions();
     assert_eq!(public_perms.mode() & 0o777, 0o644);
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
@@ -201,13 +173,12 @@ mod tests {
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_different_users() -> anyhow::Result<()>
   {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path1 = temp.path().join("client1.crt");
     let private_path1 = temp.path().join("client1.key");
@@ -246,21 +217,18 @@ mod tests {
     assert_ne!(private1, private2);
     assert_ne!(public1, public2);
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_no_renew() -> anyhow::Result<()> {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path = temp.path().join("client.crt");
     let private_path = temp.path().join("client.key");
@@ -285,21 +253,18 @@ mod tests {
     assert_eq!(public_content, "existing_public");
     assert_eq!(private_content, "existing_private");
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_renew() -> anyhow::Result<()> {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path = temp.path().join("client.crt");
     let private_path = temp.path().join("client.key");
@@ -328,22 +293,19 @@ mod tests {
         && private_content.contains("PRIVATE KEY")
     );
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_deterministic() -> anyhow::Result<()> {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
     // Client certificates should be different on each generation
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path1 = temp.path().join("client1.crt");
     let private_path1 = temp.path().join("client1.key");
@@ -380,16 +342,13 @@ mod tests {
     assert!(public1.contains("-----BEGIN CERTIFICATE"));
     assert!(public2.contains("-----BEGIN CERTIFICATE"));
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_missing_ca() -> anyhow::Result<()> {
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
+    let temp = TempCurrentDir::new()?;
 
     let ca_public = temp.path().join("nonexistent.crt");
     let ca_private = temp.path().join("nonexistent.key");
@@ -415,21 +374,18 @@ mod tests {
       err_msg
     );
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_generate_cockroach_client_cert_subdir() -> anyhow::Result<()> {
-    if skip_in_ci() {
+    if is_ci() {
       return Ok(());
     }
 
-    let temp = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let temp = TempCurrentDir::new()?;
+    let (ca_public, ca_private) = mock_cockroach_ca(temp.path())?;
 
     let public_path = temp.path().join("subdir1").join("client.crt");
     let private_path = temp.path().join("subdir2").join("client.key");
@@ -472,8 +428,6 @@ mod tests {
     let public_metadata = std::fs::metadata(&public_path)?;
     let public_perms = public_metadata.permissions();
     assert_eq!(public_perms.mode() & 0o777, 0o644);
-
-    std::env::set_current_dir(cwd)?;
 
     Ok(())
   }

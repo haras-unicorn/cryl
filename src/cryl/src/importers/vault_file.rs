@@ -10,7 +10,6 @@ pub fn import_vault_file(
 ) -> CrylResult<()> {
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
-  let full_path = format!("{}/current", trimmed_path);
 
   // Extract last component now to exit early
   // and because the file might be under a subdirectory
@@ -31,7 +30,7 @@ pub fn import_vault_file(
     .arg("kv")
     .arg("get")
     .arg("-format=json")
-    .arg(&full_path)
+    .arg(trimmed_path)
     .output()
   {
     Ok(output) => output,
@@ -125,7 +124,7 @@ mod tests {
       .args([
         "kv",
         "put",
-        "kv/test-app/current",
+        "kv/test-app",
         "secret.txt=top-secret-value",
         "config.yaml=port: 8080",
       ])
@@ -158,7 +157,7 @@ mod tests {
 
     // Create secret with different key
     Command::new("vault")
-      .args(["kv", "put", "kv/test-app/current", "other.txt=value"])
+      .args(["kv", "put", "kv/test-app", "other.txt=value"])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -180,7 +179,7 @@ mod tests {
     let _container = vault_container("vfile-missing-key-err-test").await?;
 
     Command::new("vault")
-      .args(["kv", "put", "kv/test-app/current", "other.txt=value"])
+      .args(["kv", "put", "kv/test-app", "other.txt=value"])
       .output()?;
 
     let temp_dir = TempDir::new()?;
@@ -260,7 +259,7 @@ mod tests {
       .args([
         "kv",
         "put",
-        "kv/team/project/env/current",
+        "kv/team/project/env",
         &format!("{}={}", file_name, file_content),
       ])
       .output()?;
@@ -288,7 +287,7 @@ mod tests {
       .args([
         "kv",
         "put",
-        "kv/my-app/current",
+        "kv/my-app",
         &format!("{}=key: value", file_name),
       ])
       .output()?;
@@ -321,7 +320,7 @@ mod tests {
       .args([
         "kv",
         "put",
-        "kv/binary/current",
+        "kv/binary",
         &format!("{}={}", file_name, encoded),
       ])
       .output()?;
@@ -349,7 +348,7 @@ mod tests {
       .args([
         "kv",
         "put",
-        "kv/permissions/current",
+        "kv/permissions",
         &format!("{}=very-secret", file_name),
       ])
       .output()?;
@@ -381,12 +380,7 @@ mod tests {
 
     // Write test secret
     Command::new("vault")
-      .args([
-        "kv",
-        "put",
-        &format!("{path}/current"),
-        &format!("{file}={value}"),
-      ])
+      .args(["kv", "put", path, &format!("{file}={value}")])
       .output()?;
 
     // Test import

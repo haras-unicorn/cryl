@@ -20,9 +20,10 @@ Uses [`medusa`] to import multiple files from [Vault].
 
 - Type: `vault`
 - Arguments:
-  - `path` (`string`): [Vault] path where to load files from. The `path` will
-    get suffixed with a `current` key because it lets the corresponding `vault`
-    exporter to export multiple versions of the same secrets.
+  - `path` (`string`): [Vault] path where to load files from. The subkeys from
+    this path are interpreted deeply and will be saved into the working
+    directory into subdirectories (ie. the key `file` at path `<path>/subdir`
+    will be saved into `./subdir/file`).
   - `allow_fail` (`boolean`, `= false`): Allow failing to load files.
 
 ## Vault file
@@ -31,9 +32,7 @@ Uses [Vault] CLI to import a single file from [Vault].
 
 - Type: `vault-file`
 - Arguments:
-  - `path` (`string`): [Vault] path where to load files from. The `path` will
-    get suffixed with a `current` key because it lets the corresponding `vault`
-    exporter to export multiple versions of the same secrets.
+  - `path` (`string`): [Vault] path where to load files from.
   - `file` (`string`): Key of the file to load.
   - `allow_fail` (`boolean`, `= false`): Allow failing to load file.
 

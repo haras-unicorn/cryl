@@ -1,53 +1,87 @@
-use crate::common::{CrylError, CrylResult};
-use std::{collections::BTreeMap, path::Path};
+use crate::common::{
+  CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
+  list_directory,
+};
+use std::path::{Path, PathBuf};
 
-/// Vault exporter - exports all files in provided directory
-/// (default is current directory) to a Vault KV path
-pub fn export_vault(path: &str, dir: Option<&Path>) -> CrylResult<()> {
+/// Vault exporter - exports all files in directory listing
+pub fn export_vault(
+  path: &str,
+  format: Format,
+  listing: &Path,
+) -> CrylResult<()> {
+  // Get listing first to exit early
+  let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
+
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
 
-  let dir = if let Some(dir) = dir {
-    dir
-  } else {
-    Path::new(".")
-  };
+  // Keep in variable here so we can consume it with list_directory
+  let is_map = matches!(listing, DirectoryListing::Map(_));
 
-  // Collect all files in current directory
-  let mut files = BTreeMap::new();
-  for entry in std::fs::read_dir(dir)? {
-    let entry = entry?;
-    let path = entry.path();
-    if path.is_file() {
-      let filename =
-        path.file_name().and_then(|s| s.to_str()).ok_or_else(|| {
-          CrylError::Export {
-            exporter: "vault".to_string(),
-            message: format!("Invalid filename: {:?}", path),
-          }
-        })?;
-      let content = std::fs::read_to_string(&path)?;
-      files.insert(filename.to_string(), content);
-    }
-  }
+  // List directory
+  let files = list_directory(std::env::current_dir()?, listing)?;
 
+  // Return early to avoid sending an empty request
   if files.is_empty() {
     return Ok(());
   }
 
-  // Build YAML structure with current/ key
+  // Build YAML structure
   let mut yaml_map = serde_yaml::Mapping::new();
-  let mut current_map = serde_yaml::Mapping::new();
-  for (key, value) in &files {
-    current_map.insert(
-      serde_yaml::Value::String(key.clone()),
-      serde_yaml::Value::String(value.clone()),
-    );
+  for (key, file) in files {
+    // Extract components
+    let components = if !is_map {
+      Path::new(&key)
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy().to_string())
+        .collect::<Vec<_>>()
+    } else {
+      key
+        .split('/')
+        .map(|component| component.to_string())
+        .collect::<Vec<_>>()
+    };
+
+    fn insert_recursive(
+      components: &[String],
+      file: PathBuf,
+      map: &mut serde_yaml::Mapping,
+    ) -> CrylResult<()> {
+      let Some(first) = components.first() else {
+        return Ok(());
+      };
+
+      let key = serde_yaml::Value::String(first.clone());
+      if components.len() == 1 {
+        map.insert(
+          key,
+          serde_yaml::Value::String(std::fs::read_to_string(file)?),
+        );
+        return Ok(());
+      }
+
+      let next_map = if let Some(next_map) = map
+        .get_mut(key.clone())
+        .and_then(|value| value.as_mapping_mut())
+      {
+        next_map
+      } else {
+        map.insert(
+          key.clone(),
+          serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+        );
+        #[allow(clippy::unwrap_used, reason = "just added it")]
+        map.get_mut(key).unwrap().as_mapping_mut().unwrap()
+      };
+
+      insert_recursive(&components[1..], file, next_map)?;
+
+      Ok(())
+    }
+
+    insert_recursive(&components, file, &mut yaml_map)?;
   }
-  yaml_map.insert(
-    serde_yaml::Value::String("current".to_string()),
-    serde_yaml::Value::Mapping(current_map),
-  );
 
   let yaml_content =
     serde_yaml::to_string(&yaml_map).map_err(|e| CrylError::Export {
@@ -105,10 +139,13 @@ pub fn export_vault(path: &str, dir: Option<&Path>) -> CrylResult<()> {
 
 #[cfg(test)]
 mod tests {
-  use crate::common::vault_container;
+  use crate::common::{Format, TempCurrentDir, vault_container};
   use serial_test::serial;
-  use std::{path::PathBuf, process::Command, str::FromStr};
-  use tempfile::TempDir;
+  use std::{
+    path::{Path, PathBuf},
+    process::Command,
+    str::FromStr,
+  };
 
   #[tokio::test]
   #[serial(environment)]
@@ -116,20 +153,18 @@ mod tests {
   async fn test_export_vault_success() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-test").await?;
 
-    let temp_dir = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(&temp_dir)?;
-
     // Create test files
+    let _temp = TempCurrentDir::new()?;
     std::fs::write("secret.txt", "top-secret")?;
     std::fs::write("config.yaml", "port: 8080")?;
+    std::fs::write("listing.json", r#"{ "type": "flat" }"#)?;
 
     // Export to vault
-    super::export_vault("kv/my-app", None)?;
+    super::export_vault("kv/my-app", Format::Json, &Path::new("listing.json"))?;
 
     // Verify using vault CLI
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/my-app/current"])
+      .args(["kv", "get", "-format=json", "kv/my-app"])
       .output()?;
 
     if !output.status.success() {
@@ -143,8 +178,6 @@ mod tests {
     assert_eq!(json["data"]["data"]["secret.txt"], "top-secret");
     assert_eq!(json["data"]["data"]["config.yaml"], "port: 8080");
 
-    std::env::set_current_dir(cwd)?;
-
     Ok(())
   }
 
@@ -154,14 +187,15 @@ mod tests {
   async fn test_export_vault_empty_directory() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-empty-test").await?;
 
-    let temp_dir = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(&temp_dir)?;
+    let _temp = TempCurrentDir::new()?;
+    std::fs::write("listing.json", r#"{ "type": "flat" }"#)?;
 
     // Export from empty directory should succeed
-    super::export_vault("kv/empty-app", None)?;
-
-    std::env::set_current_dir(cwd)?;
+    super::export_vault(
+      "kv/empty-app",
+      Format::Json,
+      &Path::new("listing.json"),
+    )?;
 
     Ok(())
   }
@@ -172,24 +206,24 @@ mod tests {
   async fn test_export_vault_with_trailing_slash() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-slash-test").await?;
 
-    let temp_dir = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(&temp_dir)?;
-
+    let _temp = TempCurrentDir::new()?;
     std::fs::write("data.txt", "test-data")?;
+    std::fs::write("listing.json", r#"{ "type": "flat" }"#)?;
 
     // Path with trailing slash should work
-    super::export_vault("kv/slash-app/", None)?;
+    super::export_vault(
+      "kv/slash-app/",
+      Format::Json,
+      &Path::new("listing.json"),
+    )?;
 
     // Verify
     let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", "kv/slash-app/current"])
+      .args(["kv", "get", "-format=json", "kv/slash-app"])
       .output()?;
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
     assert_eq!(json["data"]["data"]["data.txt"], "test-data");
-
-    std::env::set_current_dir(cwd)?;
 
     Ok(())
   }
@@ -199,6 +233,8 @@ mod tests {
   #[serial(working_directory)]
   async fn test_export_vault_subdir() -> anyhow::Result<()> {
     let _container = vault_container("vault-export-subdir-test").await?;
+    let _temp = TempCurrentDir::new()?;
+
     let dir = PathBuf::from_str("subdir").unwrap();
     let first_key = "secret.txt";
     let first_file = dir.join(first_key);
@@ -208,22 +244,17 @@ mod tests {
     let second_content = "port: 8080";
     let key = "kv/my-app";
 
-    let temp_dir = TempDir::new()?;
-    let cwd = std::env::current_dir()?;
-    std::env::set_current_dir(&temp_dir)?;
-
     // Create test files
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(first_file, first_content)?;
     std::fs::write(second_file, second_content)?;
+    std::fs::write("listing.json", r#"{ "type": "deep" }"#)?;
 
     // Export to vault
-    super::export_vault(key, Some(&dir))?;
+    super::export_vault(key, Format::Json, &Path::new("listing.json"))?;
 
-    // Verify using vault CLI
-    let output = Command::new("vault")
-      .args(["kv", "get", "-format=json", &format!("{key}/current")])
-      .output()?;
+    // Verify using medusa
+    let output = Command::new("medusa").args(["export", "kv"]).output()?;
 
     if !output.status.success() {
       anyhow::bail!(
@@ -232,11 +263,10 @@ mod tests {
       );
     }
 
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(json["data"]["data"][first_key], first_content);
-    assert_eq!(json["data"]["data"][second_key], second_content);
-
-    std::env::set_current_dir(cwd)?;
+    let yaml: serde_json::Value = serde_yaml::from_slice(&output.stdout)?;
+    assert_eq!(yaml["my-app"]["subdir"][first_key], first_content);
+    assert_eq!(yaml["my-app"]["subdir"][second_key], second_content);
+    assert_eq!(yaml["my-app"]["listing.json"], r#"{ "type": "deep" }"#);
 
     Ok(())
   }

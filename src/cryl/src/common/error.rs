@@ -1,3 +1,6 @@
+use std::{fmt::Display, path::PathBuf};
+
+use clap_stdin::StdinError;
 use thiserror::Error;
 
 /// Errors that can occur during cryl operations
@@ -51,6 +54,38 @@ pub enum CrylError {
 
   #[error("No working directory")]
   WorkingDirectory,
+
+  #[error("Listing directory failed because file '{0}' not found")]
+  DirectoryListing(PathBuf),
+
+  #[error("Error reading file from stdin: {0}")]
+  Stdin(#[from] StdinError),
+
+  #[error("Multiple errors occurred:\n{0}")]
+  Multiple(MultiCrylError),
+}
+
+impl CrylError {
+  pub fn multiple<T: IntoIterator<Item = CrylError>>(iter: T) -> CrylError {
+    CrylError::Multiple(MultiCrylError {
+      errors: iter.into_iter().collect::<Vec<_>>(),
+    })
+  }
+}
+
+#[derive(Debug)]
+pub struct MultiCrylError {
+  pub errors: Vec<CrylError>,
+}
+
+impl Display for MultiCrylError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    for error in self.errors.iter() {
+      error.fmt(f)?;
+      f.write_str("\n")?;
+    }
+    Ok(())
+  }
 }
 
 /// Result type alias for cryl operations

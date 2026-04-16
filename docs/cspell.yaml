@@ -9,3 +9,7 @@ words:
   - diffie
   - bubblewrap
   - nosandbox
+  - subpaths
+  - subpath
+  - subkeys
+  - subkey

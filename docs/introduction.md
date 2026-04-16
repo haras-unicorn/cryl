@@ -179,6 +179,60 @@ This specification will instruct cryl to do the following:
 
 cryl validates every specification against the [schema.json] file.
 
+### Directory listing
+
+Some importers/exporters/generators accept arguments of the type
+`DirectoryListing`. This type is useful to tell `cryl` how to read multiple
+files in the working directory (ie. to read files for SOPS, environment files,
+mustache variables, etc.). This type is a tagged enum with the following
+variants:
+
+- `flat`: reads all files in the current working directory not descending into
+  subdirectories. In example:
+
+  ```toml
+  [listing]
+  type = "flat"
+  ```
+
+- `deep`: reads all files in the current working directory descending into
+  subdirectories recursively. In example:
+
+  ```toml
+  [listing]
+  type = "deep"
+  ```
+
+- `list`: reads all files in the provided list throwing an error if any are not
+  present. In example:
+
+  ```toml
+  [listing]
+  type = "list"
+  value = [ "file1" "subdir/file2" "file3" ]
+  ```
+
+- `map`: reads all files in the provided map values throwing an error if any are
+  not present. You can map certain file content to a certain key this way (ie.
+  for SOPS, the keys will become keys in the private YAML file with the file
+  content as the value). In example:
+
+  ```toml
+  [listing]
+  type = "list"
+
+  [listing.value]
+  key1 = "file1"
+  key2 = "subdir/file2"
+  ```
+
+Some generators/importers/exporters will interpret keys/paths in a flat manner
+while some will interpret them in a deep manner. In example, the `vault`
+exporter will export to vault following the directory structure when using
+non-map variants and split keys with a forward slash (`/`) when using the map
+variant. On the other hand, the SOPS generator will flatten all keys/paths using
+a dash (`-`) to form kebab-cased keys in the private YAML file.
+
 [schema.json]:
   https://github.com/haras-unicorn/cryl/blob/main/assets/schema.json
 [cryl flake]: https://github.com/haras-unicorn/cryl

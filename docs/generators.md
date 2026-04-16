@@ -254,7 +254,7 @@ Notes:
 
 - basicConstraints set to CA:true (with pathlen if provided).
 - keyUsage: keyCertSign, cRLSign. Hash: sha256.
-- Keeps your serial tidy by temp’ing and then writing back. ✅
+- Hash: sha256. ✅
 
 ## TLS leaf
 
@@ -298,8 +298,16 @@ Creates a Root CA (self-signed):
 
 Algorithm: RSA 4096. 🔒
 
-- Type: tls-root (RSA)
-- See: [TLS root](#tls-root) heading
+- Type: `tls-rsa-root`
+- Arguments:
+  - `common_name` (`string`): CN for the Root CA.
+  - `organization` (`string`): Organization name.
+  - `config` (`path`): Where the temporary OpenSSL config is saved.
+  - `private` (`path`): Destination for the private key.
+  - `public` (`path`): Destination for the root certificate.
+  - `pathlen` (`int`, `= 1`): Max chain depth; -1 means no limit.
+  - `days` (`int`, `= 3650`): Validity period.
+  - `renew` (`boolean`, `= false`): Overwrite existing files.
 
 ## TLS RSA intermediary
 
@@ -311,8 +319,21 @@ Creates an Intermediate CA signed by your Root:
 
 Algorithm: RSA 4096. 🏗️
 
-- Type: tls-intermediary (RSA)
-- See: [TLS intermediary](#tls-intermediary) heading
+- Type: `tls-intermediary`
+- Arguments:
+  - `common_name` (`string`): CN for the Intermediate CA.
+  - `organization` (`string`): Organization name.
+  - `config` (`path`): Output merged OpenSSL config.
+  - `private` (`path`): Intermediate private key path.
+  - `request` (`path`): CSR path.
+  - `request_config` (`path`): Base req config to extend.
+  - `ca_public` (`path`): Root certificate.
+  - `ca_private` (`path`): Root private key.
+  - `serial` (`path`): Serial tracking file.
+  - `public` (`path`): Signed intermediate certificate.
+  - `pathlen` (`int`, `= 0`): Max chain depth under this intermediate.
+  - `days` (`int`, `= 3650`): Validity period.
+  - `renew` (`boolean`, `= false`): Overwrite existing files.
 
 ## TLS RSA leaf
 
@@ -324,8 +345,21 @@ Issues a leaf (end-entity) certificate:
 
 Algorithm: RSA 4096. 🍃
 
-- Type: tls-leaf (RSA)
-- See: [TLS leaf](#tls-leaf) heading
+- Type: `tls-leaf`
+- Arguments:
+  - `common_name` (`string`): CN for the cert.
+  - `organization` (`string`): Org name.
+  - `sans` (`string`): Comma-separated SANs.
+  - `config` (`path`): Output ext config used for signing.
+  - `request_config` (`path`): Req config for CSR.
+  - `private` (`path`): Private key path.
+  - `request` (`path`): CSR path.
+  - `ca_public` (`path`): Issuer certificate.
+  - `ca_private` (`path`): Issuer private key.
+  - `serial` (`path`): Serial tracking file.
+  - `public` (`path`): Signed certificate output.
+  - `days` (`int`, `= 3650`): Validity period.
+  - `renew` (`boolean`, `= false`): Overwrite existing files.
 
 ## OpenSSL Diffie-Hellman parameters
 
@@ -413,22 +447,56 @@ Generates and environment (`.env`) file.
 - Type: `env`
 - Arguments:
   - `name` (`string`): Where to save the environment file.
-  - `variables` (`object`): Variables pointing to files which to open and
-    include.
+  - `listing` (`DirectoryListing`): Determines which files will be read to
+    create variables. This generator interprets keys/paths flatly. It joins path
+    components with an underscore (`_`) and converts them to uppercase making
+    them into screaming snake case (ie. `SUBDIR_FILE1`). When providing your own
+    keys with a `map` variant, it will leave them untouched.
   - `renew` (`boolean`, `= false`): Whether to overwrite on subsequent
     generations.
 
-## Moustache template
+## Mustache template
 
 Generates a populated Mustache template.
 
-- Type: `moustache`
+- Type: `mustache`
 - Arguments:
   - `name` (`string`): Where to save the populated template.
   - `template` (`string`): The Mustache template.
-  - `variables` (`object`): Variables to insert into the template.
+  - `listing` (`DirectoryListing`): Determines which files will be read to
+    create variables. This generator interprets keys/paths flatly. It joins path
+    components with an underscore (`_`) and converts them to uppercase making
+    them into screaming snake case (ie. `SUBDIR_FILE1`). When providing your own
+    keys with a `map` variant, it will leave them untouched.
   - `renew` (`boolean`, `= false`): Whether to overwrite on subsequent
     generations.
+
+## SOPS
+
+Generates SOPS-encrypted secrets from a key-value map.
+
+- Type: `sops`
+- Arguments:
+  - `age` (`string`): Age recipient(s) used for encryption.
+  - `public` (`string`): Where to save the encrypted secrets (SOPS YAML).
+  - `private` (`string`): Where to save the plaintext secrets (YAML).
+  - `listing` (`DirectoryListing`): Determines which files will be read to
+    create variables. This generator interprets keys/paths flatly. It joins path
+    components with a dash (`-`) and making them into kebab case (ie.
+    `subdir-FILE1`). When providing your own keys with a `map` variant, it will
+    leave them untouched.
+  - `renew` (`boolean`, default: false): Whether to overwrite on subsequent
+    generations.
+
+Notes:
+
+- Flow:
+  1. Secrets -> YAML saved to `private` (plaintext).
+  2. Encrypt with
+     `sops encrypt --input-type yaml --age <age> --output-type yaml`.
+  3. Save encrypted output to `public`.
+- `public` is saved as a public artifact; `private` contains plaintext—handle
+  with care.
 
 ## Script
 
@@ -444,27 +512,3 @@ Generates a Nushell script and executes it.
 Notes:
 
 - Running this requires the `--allow-script` flag enabled for execution.
-
-## SOPS
-
-Generates SOPS-encrypted secrets from a key-value map.
-
-- Type: `sops`
-- Arguments:
-  - `age` (`string`): Age recipient(s) used for encryption.
-  - `public` (`string`): Where to save the encrypted secrets (SOPS YAML).
-  - `private` (`string`): Where to save the plaintext secrets (YAML).
-  - `secrets` (`object`): Secrets map to insert. Values may be inline strings or
-    file paths to inline.
-  - `renew` (`boolean`, default: false): Whether to overwrite on subsequent
-    generations.
-
-Notes:
-
-- Flow:
-  1. Secrets -> YAML saved to `private` (plaintext).
-  2. Encrypt with
-     `sops encrypt --input-type yaml --age <age> --output-type yaml`.
-  3. Save encrypted output to `public`.
-- `public` is saved as a public artifact; `private` contains plaintext—handle
-  with care.

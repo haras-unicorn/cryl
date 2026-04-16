@@ -1,7 +1,8 @@
 //! CLI argument parsing for cryl
 
+use crate::common::Format;
 use clap::{Args, Parser, Subcommand};
-use std::path::PathBuf;
+use clap_stdin::FileOrStdin;
 
 /// cryl - Secret generation tool
 ///
@@ -22,7 +23,7 @@ pub enum Commands {
   #[command(name = "path", visible_alias = "from-path")]
   Path {
     /// Path to specification file
-    spec: PathBuf,
+    spec: String,
     #[command(flatten)]
     common: CommonArgs,
     #[command(flatten)]
@@ -32,8 +33,8 @@ pub enum Commands {
   /// Load specification from stdin
   #[command(name = "stdin", visible_alias = "from-stdin")]
   Stdin {
-    /// Format of the specification (json, yaml, toml)
-    format: String,
+    /// Format of the specification
+    format: Format,
     #[command(flatten)]
     common: CommonArgs,
     #[command(flatten)]
@@ -82,9 +83,9 @@ pub struct CommonArgs {
   #[arg(long, default_value = "1048576")]
   pub max_specification_size: usize,
 
-  /// Select manifest format (json, yaml, toml)
+  /// Select manifest format
   #[arg(long, default_value = "json")]
-  pub manifest_format: String,
+  pub manifest_format: Format,
 
   /// Don't create a manifest file
   #[arg(long)]
@@ -141,9 +142,9 @@ pub enum ImportCommands {
   /// Copy a file
   Copy {
     /// Source path
-    from: PathBuf,
+    from: String,
     /// Destination path
-    to: PathBuf,
+    to: String,
     /// Allow failing to copy if source missing
     #[arg(long)]
     allow_fail: bool,
@@ -153,8 +154,6 @@ pub enum ImportCommands {
   Vault {
     /// Vault path to import from
     path: String,
-    /// Directory in which to import (default is current directory)
-    dir: Option<PathBuf>,
     /// Allow failing to import if source missing
     #[arg(long)]
     allow_fail: bool,
@@ -176,7 +175,7 @@ pub enum ImportCommands {
   #[command(name = "working-directory")]
   WorkingDirectory {
     /// Path to the new working directory
-    path: PathBuf,
+    path: String,
   },
 }
 
@@ -186,7 +185,7 @@ pub enum GenerateCommands {
   #[command(name = "id")]
   Id {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Number of characters
     #[arg(long, default_value = "16")]
     length: u32,
@@ -199,7 +198,7 @@ pub enum GenerateCommands {
   #[command(name = "key")]
   Key {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Number of characters
     #[arg(long, default_value = "32")]
     length: u32,
@@ -212,7 +211,7 @@ pub enum GenerateCommands {
   #[command(name = "pin")]
   Pin {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Number of digits
     #[arg(long, default_value = "8")]
     length: u32,
@@ -224,9 +223,9 @@ pub enum GenerateCommands {
   /// Copy a file
   Copy {
     /// Source path
-    from: PathBuf,
+    from: String,
     /// Destination path
-    to: PathBuf,
+    to: String,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -235,7 +234,7 @@ pub enum GenerateCommands {
   /// Generate text file
   Text {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Text content
     text: String,
     /// Overwrite destination if exists
@@ -246,11 +245,11 @@ pub enum GenerateCommands {
   /// Convert data to JSON
   Json {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Input format
-    in_format: String,
-    /// Source data path
-    data: PathBuf,
+    format: Format,
+    /// Source data file
+    data: FileOrStdin,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -259,11 +258,11 @@ pub enum GenerateCommands {
   /// Convert data to YAML
   Yaml {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Input format
-    in_format: String,
-    /// Source data path
-    data: PathBuf,
+    format: Format,
+    /// Source data file
+    data: FileOrStdin,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -272,11 +271,11 @@ pub enum GenerateCommands {
   /// Convert data to TOML
   Toml {
     /// Destination file name
-    name: PathBuf,
+    name: String,
     /// Input format
-    in_format: String,
-    /// Source data path
-    data: PathBuf,
+    format: Format,
+    /// Source data file
+    data: FileOrStdin,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -286,9 +285,9 @@ pub enum GenerateCommands {
   #[command(name = "password")]
   Password {
     /// Path for public/hashed password
-    public: PathBuf,
+    public: String,
     /// Path for private/plain password
-    private: PathBuf,
+    private: String,
     /// Password length
     #[arg(long, default_value = "8")]
     length: usize,
@@ -301,9 +300,9 @@ pub enum GenerateCommands {
   #[command(name = "password-crypt-3")]
   PasswordCrypt3 {
     /// Path for public/hashed password
-    public: PathBuf,
+    public: String,
     /// Path for private/plain password
-    private: PathBuf,
+    private: String,
     /// Password length
     #[arg(long, default_value = "8")]
     length: usize,
@@ -316,9 +315,9 @@ pub enum GenerateCommands {
   #[command(name = "age-key")]
   AgeKey {
     /// Public key path
-    public: PathBuf,
+    public: String,
     /// Private key path
-    private: PathBuf,
+    private: String,
     /// Overwrite if exists
     #[arg(long)]
     renew: bool,
@@ -330,12 +329,12 @@ pub enum GenerateCommands {
     /// Key comment (e.g., email/host)
     name: String,
     /// Public key path
-    public: PathBuf,
+    public: String,
     /// Private key path
-    private: PathBuf,
+    private: String,
     /// Passphrase file (optional)
     #[arg(long)]
-    password: Option<PathBuf>,
+    password: Option<String>,
     /// Overwrite if exists
     #[arg(long)]
     renew: bool,
@@ -345,9 +344,9 @@ pub enum GenerateCommands {
   #[command(name = "wireguard-key")]
   WireguardKey {
     /// Private key path
-    private: PathBuf,
+    private: String,
     /// Public key path
-    public: PathBuf,
+    public: String,
     /// Overwrite if exists
     #[arg(long)]
     renew: bool,
@@ -357,7 +356,7 @@ pub enum GenerateCommands {
   #[command(name = "key-split")]
   KeySplit {
     /// Source key file
-    key: PathBuf,
+    key: String,
     /// Share filename prefix
     prefix: String,
     /// Minimum shares to reconstruct
@@ -375,7 +374,7 @@ pub enum GenerateCommands {
     /// Comma-separated share files
     shares: String,
     /// Output key file
-    key: PathBuf,
+    key: String,
     /// Required shares (must match split threshold)
     threshold: usize,
     /// Overwrite if exists
@@ -391,11 +390,11 @@ pub enum GenerateCommands {
     /// Organization name
     organization: String,
     /// Path to write OpenSSL config
-    config: PathBuf,
+    config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save self-signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate path length constraint (-1 for unlimited)
     #[arg(long, default_value = "1")]
     pathlen: i32,
@@ -415,21 +414,21 @@ pub enum GenerateCommands {
     /// Organization name
     organization: String,
     /// Path to write merged OpenSSL config (extensions + request)
-    config: PathBuf,
+    config: String,
     /// Path to write request config (will be created)
-    request_config: PathBuf,
+    request_config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save CSR
-    request: PathBuf,
+    request: String,
     /// Issuer/CA certificate path
-    ca_public: PathBuf,
+    ca_public: String,
     /// Issuer/CA private key path
-    ca_private: PathBuf,
+    ca_private: String,
     /// Serial number tracking file
-    serial: PathBuf,
+    serial: String,
     /// Path to save signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate path length constraint (-1 for unlimited)
     #[arg(long, default_value = "0")]
     pathlen: i32,
@@ -451,21 +450,21 @@ pub enum GenerateCommands {
     /// Comma-separated Subject Alternative Names
     sans: String,
     /// Path to write merged OpenSSL config (extensions + request)
-    config: PathBuf,
+    config: String,
     /// Path to write request config (will be created)
-    request_config: PathBuf,
+    request_config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save CSR
-    request: PathBuf,
+    request: String,
     /// Issuer CA certificate path
-    ca_public: PathBuf,
+    ca_public: String,
     /// Issuer CA private key path
-    ca_private: PathBuf,
+    ca_private: String,
     /// Serial number tracking file
-    serial: PathBuf,
+    serial: String,
     /// Path to save signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate validity in days
     #[arg(long, default_value = "3650")]
     days: u32,
@@ -482,11 +481,11 @@ pub enum GenerateCommands {
     /// Organization name
     organization: String,
     /// Path to write OpenSSL config
-    config: PathBuf,
+    config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save self-signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate path length constraint (-1 for unlimited)
     #[arg(long, default_value = "1")]
     pathlen: i32,
@@ -506,21 +505,21 @@ pub enum GenerateCommands {
     /// Organization name
     organization: String,
     /// Path to write merged OpenSSL config (extensions + request)
-    config: PathBuf,
+    config: String,
     /// Path to write request config (will be created)
-    request_config: PathBuf,
+    request_config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save CSR
-    request: PathBuf,
+    request: String,
     /// Issuer/CA certificate path
-    ca_public: PathBuf,
+    ca_public: String,
     /// Issuer/CA private key path
-    ca_private: PathBuf,
+    ca_private: String,
     /// Serial number tracking file
-    serial: PathBuf,
+    serial: String,
     /// Path to save signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate path length constraint (-1 for unlimited)
     #[arg(long, default_value = "0")]
     pathlen: i32,
@@ -542,21 +541,21 @@ pub enum GenerateCommands {
     /// Comma-separated Subject Alternative Names
     sans: String,
     /// Path to write merged OpenSSL config (extensions + request)
-    config: PathBuf,
+    config: String,
     /// Path to write request config (will be created)
-    request_config: PathBuf,
+    request_config: String,
     /// Path to save private key
-    private: PathBuf,
+    private: String,
     /// Path to save CSR
-    request: PathBuf,
+    request: String,
     /// Issuer CA certificate path
-    ca_public: PathBuf,
+    ca_public: String,
     /// Issuer CA private key path
-    ca_private: PathBuf,
+    ca_private: String,
     /// Serial number tracking file
-    serial: PathBuf,
+    serial: String,
     /// Path to save signed certificate
-    public: PathBuf,
+    public: String,
     /// Certificate validity in days
     #[arg(long, default_value = "3650")]
     days: u32,
@@ -569,7 +568,7 @@ pub enum GenerateCommands {
   #[command(name = "tls-dhparam")]
   TlsDhparam {
     /// Path to save DH parameters file
-    name: PathBuf,
+    name: String,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -581,9 +580,9 @@ pub enum GenerateCommands {
     /// Common Name for the CA
     name: String,
     /// Path to save CA certificate
-    public: PathBuf,
+    public: String,
     /// Path to save CA private key
-    private: PathBuf,
+    private: String,
     /// Certificate validity in days
     #[arg(long, default_value = "3650")]
     days: u32,
@@ -596,17 +595,17 @@ pub enum GenerateCommands {
   #[command(name = "nebula-cert")]
   NebulaCert {
     /// Path to Nebula CA certificate
-    ca_public: PathBuf,
+    ca_public: String,
     /// Path to Nebula CA private key
-    ca_private: PathBuf,
+    ca_private: String,
     /// Common Name for node certificate
     name: String,
     /// Node IP in CIDR or plain IP form
     ip: String,
     /// Path to save node certificate
-    public: PathBuf,
+    public: String,
     /// Path to save node private key
-    private: PathBuf,
+    private: String,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -616,9 +615,9 @@ pub enum GenerateCommands {
   #[command(name = "cockroach-ca")]
   CockroachCa {
     /// Path to save CA certificate
-    public: PathBuf,
+    public: String,
     /// Path to save CA private key
-    private: PathBuf,
+    private: String,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -628,13 +627,13 @@ pub enum GenerateCommands {
   #[command(name = "cockroach-node-cert")]
   CockroachNodeCert {
     /// Path to CockroachDB CA certificate
-    ca_public: PathBuf,
+    ca_public: String,
     /// Path to CockroachDB CA private key
-    ca_private: PathBuf,
+    ca_private: String,
     /// Path to save node certificate
-    public: PathBuf,
+    public: String,
     /// Path to save node private key
-    private: PathBuf,
+    private: String,
     /// Comma-separated hostnames/IPs for SANs
     hosts: String,
     /// Overwrite destination if exists
@@ -646,13 +645,13 @@ pub enum GenerateCommands {
   #[command(name = "cockroach-client-cert")]
   CockroachClientCert {
     /// Path to CockroachDB CA certificate
-    ca_public: PathBuf,
+    ca_public: String,
     /// Path to CockroachDB CA private key
-    ca_private: PathBuf,
+    ca_private: String,
     /// Path to save client certificate
-    public: PathBuf,
+    public: String,
     /// Path to save client private key
-    private: PathBuf,
+    private: String,
     /// CockroachDB username
     user: String,
     /// Overwrite destination if exists
@@ -663,11 +662,11 @@ pub enum GenerateCommands {
   /// Generate environment (.env) file
   Env {
     /// Destination file path
-    name: PathBuf,
-    /// Input format of variables (json, yaml, toml)
-    format: String,
-    /// Path to variables file
-    vars: PathBuf,
+    name: String,
+    /// Input format of variables
+    format: Format,
+    /// Variables file
+    variables: FileOrStdin,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -677,22 +676,11 @@ pub enum GenerateCommands {
   #[command(name = "mustache")]
   Mustache {
     /// Base name for output files (adds -variables, -template suffixes)
-    name: PathBuf,
-    /// Input format of combined file (json, yaml, toml)
-    format: String,
-    /// Path to {template, variables} file
-    variables_and_template: PathBuf,
-    /// Overwrite destination if exists
-    #[arg(long)]
-    renew: bool,
-  },
-
-  /// Generate and run Nushell script
-  Script {
-    /// Path to save script
-    name: PathBuf,
-    /// Script content
-    text: String,
+    name: String,
+    /// Input format of template and variables file
+    format: Format,
+    /// File with object of template string and variables as directory listing
+    listing_and_template: FileOrStdin,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -701,15 +689,26 @@ pub enum GenerateCommands {
   /// Generate SOPS-encrypted secrets
   Sops {
     /// Path to Age recipient(s) file
-    age: PathBuf,
+    age: String,
     /// Path to save encrypted YAML
-    public: PathBuf,
+    public: String,
     /// Path to save plaintext YAML
-    private: PathBuf,
-    /// Input format for secrets (json, yaml, toml)
-    format: String,
-    /// Path to secrets file
-    values: PathBuf,
+    private: String,
+    /// Input format for secrets
+    format: Format,
+    /// Secrets file containing value for directory listing
+    values: FileOrStdin,
+    /// Overwrite destination if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
+  /// Generate and run Nushell script
+  Script {
+    /// Path to save script
+    name: String,
+    /// Script content
+    text: String,
     /// Overwrite destination if exists
     #[arg(long)]
     renew: bool,
@@ -719,7 +718,7 @@ pub enum GenerateCommands {
   #[command(name = "working-directory")]
   WorkingDirectory {
     /// Path to the new working directory
-    path: PathBuf,
+    path: String,
   },
 }
 
@@ -728,17 +727,19 @@ pub enum ExportCommands {
   /// Copy a file
   Copy {
     /// Source path
-    from: PathBuf,
+    from: String,
     /// Destination path
-    to: PathBuf,
+    to: String,
   },
 
   /// Export to Vault
   Vault {
     /// Base vault path
     path: String,
-    /// Directory from which to export (default is current directory)
-    dir: Option<PathBuf>,
+    /// Directory listing format
+    format: Format,
+    /// File containing directory listing value
+    listing: FileOrStdin,
   },
 
   /// Export single file to Vault
@@ -754,14 +755,14 @@ pub enum ExportCommands {
   #[command(name = "working-directory")]
   WorkingDirectory {
     /// Path to the new working directory
-    path: PathBuf,
+    path: String,
   },
 }
 
 #[derive(Clone, Debug)]
 pub struct BindMount {
-  pub source: PathBuf,
-  pub target: Option<PathBuf>,
+  pub source: String,
+  pub target: Option<String>,
 }
 
 impl std::str::FromStr for BindMount {
@@ -771,12 +772,12 @@ impl std::str::FromStr for BindMount {
     let parts = s.split(':').collect::<Vec<_>>();
     match parts.len() {
       1 => Ok(BindMount {
-        source: PathBuf::from(parts[0]),
+        source: String::from(parts[0]),
         target: None,
       }),
       2 => Ok(BindMount {
-        source: PathBuf::from(parts[0]),
-        target: Some(PathBuf::from(parts[1])),
+        source: String::from(parts[0]),
+        target: Some(String::from(parts[1])),
       }),
       _ => Err("Invalid bind mount format. Use 'path' or 'source:target'"),
     }

@@ -14,36 +14,20 @@ Copies a file overwriting destination if exists.
 
 ## Vault
 
-Exports all files in the current directory into a [Vault] KV store twice:
-
-- once to `<path>/current`
-- once to `<path>/<timestamp>`
+Exports all files in the current directory into a [Vault] KV store path using
+[`medusa`].
 
 - Type: `vault`
 - Arguments:
   - `path` (`string`): Base KV path. Leading/trailing slashes are trimmed.
-
-Behavior:
-
-- Reads all entries from the working directory (ls).
-- For each file: key = basename, value = file contents (raw, trimmed).
-- Emits a YAML map, then pipes it to:
-  - [`medusa`] import `<path>/current` -
-  - [`medusa`] import `<path>/<timestamp>` -
-- Overwrites keys on the "current" path; timestamped path is append-only by
-  nature.
-
-Notes:
-
-- Only top-level files are considered (no recursion).
-- Binary files will be read raw and trimmed; stick to text files.
+  - `listing` (`DirectoryListing`): Determines which files will be inserted into
+    the KV store. This exporter interprets keys deeply, meaning it will export
+    subdirectories/subkeys to subpaths in the KV store (ie. the key/path
+    `./subdir/file1` will go under the `<path>/subdir` secret and `file1` key).
 
 ## Vault file
 
-Sends one file's contents into [Vault] KV:
-
-- writes to `<path>/current`
-- also snapshots to `<path>/<timestamp>`
+Sends one file's contents into [Vault] KV.
 
 - Type: `vault-file`
 - Arguments:
