@@ -20,6 +20,8 @@ mod run;
 mod schema;
 mod versions;
 
+use std::path::Path;
+
 use clap::Parser;
 use cli::*;
 use common::CrylResult;
@@ -35,12 +37,12 @@ fn main() -> CrylResult<()> {
       spec,
       common,
       sandbox,
-    } => run_from_path(&spec, &common, &sandbox),
+    } => run_from_path(Path::new(&spec), &common, &sandbox),
     Commands::Stdin {
       format,
       common,
       sandbox,
-    } => run_from_stdin(&format, &common, &sandbox),
+    } => run_from_stdin(format, &common, &sandbox),
     Commands::Import(import_cmd) => run_import_command(&import_cmd),
     Commands::Generate(gen_cmd) => run_generate_command(&gen_cmd),
     Commands::Export(export_cmd) => run_export_command(&export_cmd),

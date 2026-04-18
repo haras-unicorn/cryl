@@ -1,28 +1,23 @@
-use std::path::Path;
-
 use crate::common::{
   CrylResult, Format, deserialize_from_file, save_atomic, serialize,
 };
+use std::path::Path;
 
 /// Generate a JSON file by converting data from one format to JSON
 ///
 /// # Arguments
 /// * `name` - Path to save the JSON file
-/// * `in_format` - Input format of the source data ("json", "yaml", "yml", "toml")
+/// * `format` - Input format of the source data
 /// * `data` - Path to the source data file
 /// * `renew` - Overwrite destination if it exists
 pub fn generate_json(
   name: &Path,
-  in_format: &str,
+  format: Format,
   data: &Path,
   renew: bool,
 ) -> CrylResult<()> {
-  // Parse the input format
-  let input_format = Format::parse(in_format)?;
-
   // Deserialize from input format using serde_json::Value as intermediate
-  let value: serde_json::Value =
-    deserialize_from_file(data, Some(input_format))?;
+  let value: serde_json::Value = deserialize_from_file(data, Some(format))?;
 
   // Serialize to JSON
   let json_content = serialize(&value, Format::Json)?;
@@ -52,7 +47,7 @@ mod tests {
     // Create source JSON file
     fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -70,7 +65,7 @@ mod tests {
     // Create source YAML file
     fs::write(&source_path, "name: test\nvalue: 42").unwrap();
 
-    generate_json(&dest_path, "yaml", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Yaml, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -93,7 +88,7 @@ mod tests {
     // Create source TOML file
     fs::write(&source_path, "name = \"test\"\nvalue = 42").unwrap();
 
-    generate_json(&dest_path, "toml", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Toml, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -111,7 +106,7 @@ mod tests {
 
     fs::write(&source_path, r#"{"test": true}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(format_path.exists());
     let format_content = fs::read_to_string(&format_path).unwrap();
@@ -127,7 +122,7 @@ mod tests {
     fs::write(&source_path, r#"{"new": true}"#).unwrap();
     fs::write(&dest_path, r#"{"original": true}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     let content = fs::read_to_string(&dest_path).unwrap();
     assert!(content.contains("original"));
@@ -143,7 +138,7 @@ mod tests {
     fs::write(&source_path, r#"{"new": true}"#).unwrap();
     fs::write(&dest_path, r#"{"original": true}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, true).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, true).unwrap();
 
     let content = fs::read_to_string(&dest_path).unwrap();
     assert!(!content.contains("original"));
@@ -160,7 +155,7 @@ mod tests {
 
     fs::write(&source_path, r#"{"test": true}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     let metadata = fs::metadata(&dest_path).unwrap();
     let perms = metadata.permissions();
@@ -191,7 +186,7 @@ features:
 
     fs::write(&source_path, yaml_content).unwrap();
 
-    generate_json(&dest_path, "yaml", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Yaml, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -207,25 +202,12 @@ features:
   }
 
   #[test]
-  fn test_generate_json_invalid_format() {
-    let temp = TempDir::new().unwrap();
-    let source_path = temp.path().join("source.json");
-    let dest_path = temp.path().join("output.json");
-
-    fs::write(&source_path, r#"{"test": true}"#).unwrap();
-
-    let result =
-      generate_json(&dest_path, "invalid_format", &source_path, false);
-    assert!(result.is_err());
-  }
-
-  #[test]
   fn test_generate_json_source_not_found() {
     let temp = TempDir::new().unwrap();
     let source_path = temp.path().join("nonexistent.json");
     let dest_path = temp.path().join("output.json");
 
-    let result = generate_json(&dest_path, "json", &source_path, false);
+    let result = generate_json(&dest_path, Format::Json, &source_path, false);
     assert!(result.is_err());
   }
 
@@ -239,7 +221,7 @@ features:
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -257,7 +239,7 @@ features:
     // Create source JSON file
     fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
 
-    generate_json(&dest_path, "json", &source_path, false).unwrap();
+    generate_json(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();

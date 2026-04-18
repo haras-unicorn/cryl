@@ -1,6 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
+use crate::common::DirectoryListing;
 
 /// Complete specification for secret generation pipeline.
 /// Contains imports, generations, and exports to execute in order.
@@ -93,7 +94,7 @@ pub enum Generation {
   /// Generate environment (.env) file from key‑value pairs.
   Env { arguments: EnvArgs },
   /// Generate file from Mustache template.
-  Moustache { arguments: MoustacheArgs },
+  Mustache { arguments: MustacheArgs },
   /// Generate and execute Nushell script (requires --allow-script).
   Script { arguments: ScriptArgs },
   /// Generate SOPS‑encrypted YAML with Age recipients.
@@ -125,8 +126,6 @@ pub enum Export {
 pub struct VaultImportArgs {
   /// Vault KV path to import from (e.g., "kv/my‑app").
   pub path: String,
-  /// Directory in which to import (default is current directory)
-  pub dir: Option<String>,
   /// If true, missing source does not cause failure.
   pub allow_fail: Option<bool>,
 }
@@ -426,33 +425,22 @@ pub struct CockroachClientCertArgs {
 pub struct EnvArgs {
   /// Destination file path.
   pub name: String,
-  /// Key‑value pairs; values can be strings or file paths.
-  pub variables: HashMap<String, String>,
+  /// Variables to substitute with file contents; file paths will be transformed to screaming snake case
+  pub variables: DirectoryListing,
   /// Overwrite destination if it exists.
   pub renew: Option<bool>,
 }
 
 /// Arguments for Mustache template generation.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
-pub struct MoustacheArgs {
+pub struct MustacheArgs {
   /// Base name for output files (‑variables, ‑template suffixes added).
   pub name: String,
   /// Mustache template content.
   pub template: String,
-  /// Variables to substitute; values can be strings or file paths.
-  pub variables: HashMap<String, String>,
+  /// Variables to substitute with file contents; file paths will be transformed to screaming snake case
+  pub listing: DirectoryListing,
   /// Overwrite output file if it exists.
-  pub renew: Option<bool>,
-}
-
-/// Arguments for Nushell script generation and execution.
-#[derive(Serialize, Deserialize, Debug, JsonSchema)]
-pub struct ScriptArgs {
-  /// Path to save the script.
-  pub name: String,
-  /// Nushell script content.
-  pub text: String,
-  /// Overwrite script file if it exists.
   pub renew: Option<bool>,
 }
 
@@ -465,9 +453,20 @@ pub struct SopsArgs {
   pub public: String,
   /// Path to save plaintext YAML (private).
   pub private: String,
-  /// Secret key‑value pairs; values can be strings or file paths.
-  pub secrets: serde_json::Value,
+  /// Secrets to substitute with file contents; file paths will be transformed to kebab case
+  pub secrets: DirectoryListing,
   /// Overwrite both public and private files.
+  pub renew: Option<bool>,
+}
+
+/// Arguments for Nushell script generation and execution.
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
+pub struct ScriptArgs {
+  /// Path to save the script.
+  pub name: String,
+  /// Nushell script content.
+  pub text: String,
+  /// Overwrite script file if it exists.
   pub renew: Option<bool>,
 }
 
@@ -483,8 +482,8 @@ pub struct WorkingDirectoryArgs {
 pub struct VaultExportArgs {
   /// Base Vault KV path (e.g., "kv/my‑app").
   pub path: String,
-  /// Directory from to export (default is current directory)
-  pub dir: Option<String>,
+  /// Directory listing type
+  pub listing: DirectoryListing,
 }
 
 /// Arguments for single‑file Vault KV export.

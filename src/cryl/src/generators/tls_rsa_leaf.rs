@@ -86,62 +86,14 @@ pub fn generate_tls_rsa_leaf(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::common::{
-    TlsAlgorithm, build_basic_constraints, build_root_config,
-    generate_private_key, generate_self_signed_cert, save_private_key,
-    save_public_file,
-  };
+  use crate::common::mock_tls_rsa_ca;
   use std::os::unix::fs::PermissionsExt;
   use tempfile::TempDir;
-
-  fn create_test_ca(
-    temp: &TempDir,
-  ) -> anyhow::Result<(std::path::PathBuf, std::path::PathBuf)> {
-    let ca_config = temp.path().join("ca.conf");
-    let ca_private = temp.path().join("ca.key");
-    let ca_public = temp.path().join("ca.crt");
-
-    let basic_constraints = build_basic_constraints(1);
-    let config_content =
-      build_root_config("Test Root CA", "Test Org", &basic_constraints);
-    save_public_file(&ca_config, &config_content, true)?;
-
-    let private_content = generate_private_key(TlsAlgorithm::Rsa)?;
-    save_private_key(&ca_private, &private_content, true)?;
-
-    let cert_content =
-      generate_self_signed_cert(&ca_private, &ca_config, 3650)?;
-    save_public_file(&ca_public, &cert_content, true)?;
-
-    Ok((ca_public, ca_private))
-  }
-
-  fn create_test_ca_subdirs(
-    temp: &TempDir,
-  ) -> anyhow::Result<(std::path::PathBuf, std::path::PathBuf)> {
-    let ca_config = temp.path().join("ca-subdir1").join("ca.conf");
-    let ca_private = temp.path().join("ca-subdir2").join("ca.key");
-    let ca_public = temp.path().join("ca-subdir3").join("ca.crt");
-
-    let basic_constraints = build_basic_constraints(1);
-    let config_content =
-      build_root_config("Test Root CA", "Test Org", &basic_constraints);
-    save_public_file(&ca_config, &config_content, true)?;
-
-    let private_content = generate_private_key(TlsAlgorithm::Rsa)?;
-    save_private_key(&ca_private, &private_content, true)?;
-
-    let cert_content =
-      generate_self_signed_cert(&ca_private, &ca_config, 3650)?;
-    save_public_file(&ca_public, &cert_content, true)?;
-
-    Ok((ca_public, ca_private))
-  }
 
   #[test]
   fn test_generate_tls_rsa_leaf_success() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("leaf.conf");
     let request_config_path = temp.path().join("leaf_req.conf");
@@ -226,7 +178,7 @@ mod tests {
   #[test]
   fn test_generate_tls_rsa_leaf_dns_only() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("leaf.conf");
     let request_config_path = temp.path().join("leaf_req.conf");
@@ -262,7 +214,7 @@ mod tests {
   #[test]
   fn test_generate_tls_rsa_leaf_ip_only() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("leaf.conf");
     let request_config_path = temp.path().join("leaf_req.conf");
@@ -298,7 +250,7 @@ mod tests {
   #[test]
   fn test_generate_tls_rsa_leaf_no_renew() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("leaf.conf");
     let request_config_path = temp.path().join("leaf_req.conf");
@@ -335,7 +287,7 @@ mod tests {
   #[test]
   fn test_generate_tls_rsa_leaf_renew() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("leaf.conf");
     let request_config_path = temp.path().join("leaf_req.conf");
@@ -373,7 +325,7 @@ mod tests {
   #[test]
   fn test_generate_tls_rsa_leaf_subdirs() -> anyhow::Result<()> {
     let temp = TempDir::new()?;
-    let (ca_public, ca_private) = create_test_ca_subdirs(&temp)?;
+    let (ca_public, ca_private) = mock_tls_rsa_ca(&temp)?;
 
     let config_path = temp.path().join("subdir1").join("leaf.conf");
     let request_config_path = temp.path().join("subdir2").join("leaf_req.conf");

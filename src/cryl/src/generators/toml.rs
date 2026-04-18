@@ -8,21 +8,17 @@ use crate::common::{
 ///
 /// # Arguments
 /// * `name` - Path to save the TOML file
-/// * `in_format` - Input format of the source data ("json", "yaml", "yml", "toml")
+/// * `format` - Input format of the source data
 /// * `data` - Path to the source data file
 /// * `renew` - Overwrite destination if it exists
 pub fn generate_toml(
   name: &Path,
-  in_format: &str,
+  format: Format,
   data: &Path,
   renew: bool,
 ) -> CrylResult<()> {
-  // Parse the input format
-  let input_format = Format::parse(in_format)?;
-
   // Deserialize from input format using serde_json::Value as intermediate
-  let value: serde_json::Value =
-    deserialize_from_file(data, Some(input_format))?;
+  let value: serde_json::Value = deserialize_from_file(data, Some(format))?;
 
   // Serialize to TOML
   let toml_content = serialize(&value, Format::Toml)?;
@@ -52,7 +48,7 @@ mod tests {
     // Create source JSON file
     fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -70,7 +66,7 @@ mod tests {
     // Create source YAML file
     fs::write(&source_path, "name: test\nvalue: 42").unwrap();
 
-    generate_toml(&dest_path, "yaml", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Yaml, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -88,7 +84,7 @@ mod tests {
     // Create source TOML file
     fs::write(&source_path, "name = \"test\"\nvalue = 42").unwrap();
 
-    generate_toml(&dest_path, "toml", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Toml, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -106,7 +102,7 @@ mod tests {
 
     fs::write(&source_path, r#"{"test": true}"#).unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(format_path.exists());
     let format_content = fs::read_to_string(&format_path).unwrap();
@@ -122,7 +118,7 @@ mod tests {
     fs::write(&source_path, r#"{"new": true}"#).unwrap();
     fs::write(&dest_path, "original = true").unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     let content = fs::read_to_string(&dest_path).unwrap();
     assert!(content.contains("original"));
@@ -138,7 +134,7 @@ mod tests {
     fs::write(&source_path, r#"{"new": true}"#).unwrap();
     fs::write(&dest_path, "original = true").unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, true).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, true).unwrap();
 
     let content = fs::read_to_string(&dest_path).unwrap();
     assert!(!content.contains("original"));
@@ -155,7 +151,7 @@ mod tests {
 
     fs::write(&source_path, r#"{"test": true}"#).unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     let metadata = fs::metadata(&dest_path).unwrap();
     let perms = metadata.permissions();
@@ -183,7 +179,7 @@ mod tests {
 
     fs::write(&source_path, json_content).unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();
@@ -198,25 +194,12 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_toml_invalid_format() {
-    let temp = TempDir::new().unwrap();
-    let source_path = temp.path().join("source.json");
-    let dest_path = temp.path().join("output.toml");
-
-    fs::write(&source_path, r#"{"test": true}"#).unwrap();
-
-    let result =
-      generate_toml(&dest_path, "invalid_format", &source_path, false);
-    assert!(result.is_err());
-  }
-
-  #[test]
   fn test_generate_toml_source_not_found() {
     let temp = TempDir::new().unwrap();
     let source_path = temp.path().join("nonexistent.json");
     let dest_path = temp.path().join("output.toml");
 
-    let result = generate_toml(&dest_path, "json", &source_path, false);
+    let result = generate_toml(&dest_path, Format::Json, &source_path, false);
     assert!(result.is_err());
   }
 
@@ -230,7 +213,7 @@ mod tests {
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(&source_path, r#"{"name": "test", "value": 42}"#).unwrap();
 
-    generate_toml(&dest_path, "json", &source_path, false).unwrap();
+    generate_toml(&dest_path, Format::Json, &source_path, false).unwrap();
 
     assert!(dest_path.exists());
     let content = fs::read_to_string(&dest_path).unwrap();

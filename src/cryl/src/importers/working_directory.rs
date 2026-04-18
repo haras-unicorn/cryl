@@ -24,6 +24,7 @@ pub fn import_working_directory(path: &Path) -> CrylResult<()> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::common::TempCurrentDir;
   use crate::importers::import_copy;
   use serial_test::serial;
   use tempfile::TempDir;
@@ -31,27 +32,27 @@ mod tests {
   #[test]
   #[serial(working_directory)]
   fn test_import_working_directory_creates_dir() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let new_dir = temp.path().join("new_workdir");
-    let cwd = std::env::current_dir().unwrap();
 
     import_working_directory(&new_dir).unwrap();
 
     assert!(new_dir.exists());
     assert!(new_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), new_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_import_working_directory_imports_in_new_working_directory() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let base_dir = temp.path().join("base");
     let sub_dir = base_dir.join("subdir");
     let source_file = base_dir.join("source.txt");
-    let cwd = std::env::current_dir().unwrap();
 
     std::fs::create_dir_all(&base_dir).unwrap();
     std::fs::create_dir_all(&sub_dir).unwrap();
@@ -72,32 +73,30 @@ mod tests {
       std::fs::read_to_string(&expected_dest).unwrap(),
       "test content"
     );
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_import_working_directory_nested() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let nested_dir = temp.path().join("a").join("b").join("c");
-    let cwd = std::env::current_dir().unwrap();
 
     import_working_directory(&nested_dir).unwrap();
 
     assert!(nested_dir.exists());
     assert!(nested_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), nested_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_import_working_directory_already_exists() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     let existing_dir = temp.path().join("existing");
-    let cwd = std::env::current_dir().unwrap();
 
     // Create the directory first
     std::fs::create_dir(&existing_dir).unwrap();
@@ -108,24 +107,21 @@ mod tests {
     assert!(existing_dir.exists());
     assert!(existing_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), existing_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 
   #[test]
   #[serial(working_directory)]
   fn test_import_working_directory_absolute_path() {
+    let _temp = TempCurrentDir::new().unwrap();
+
     let temp = TempDir::new().unwrap();
     // Use absolute path
     let abs_dir = temp.path().canonicalize().unwrap().join("absolute_subdir");
-    let cwd = std::env::current_dir().unwrap();
 
     import_working_directory(&abs_dir).unwrap();
 
     assert!(abs_dir.exists());
     assert!(abs_dir.is_dir());
     assert_eq!(std::env::current_dir().unwrap(), abs_dir);
-
-    std::env::set_current_dir(cwd).unwrap();
   }
 }

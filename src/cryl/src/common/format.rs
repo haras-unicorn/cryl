@@ -1,14 +1,42 @@
 //! Format handling for JSON, YAML, and TOML serialization/deserialization
 
 use crate::common::{CrylError, CrylResult};
-use std::path::Path;
+use std::{fmt::Display, path::Path, str::FromStr};
 
 /// Supported serialization formats
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(
+  Debug,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  serde::Serialize,
+  serde::Deserialize,
+  schemars::JsonSchema,
+  clap::ValueEnum,
+)]
 pub enum Format {
   Json,
   Yaml,
   Toml,
+}
+
+impl Display for Format {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Format::Json => f.write_str("json"),
+      Format::Yaml => f.write_str("yaml"),
+      Format::Toml => f.write_str("toml"),
+    }
+  }
+}
+
+impl FromStr for Format {
+  type Err = CrylError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Format::parse(s)
+  }
 }
 
 impl Format {

@@ -1,4 +1,4 @@
-use crate::common::{CrylResult, Format, serialize};
+use crate::common::{CrylResult, Format, read_directory_files, serialize};
 use crate::versions::{cryl_version, tool_version};
 use std::collections::HashMap;
 use std::path::Path;
@@ -110,34 +110,20 @@ impl Manifest {
 
   /// Record all files in the current directory as outputs
   pub fn record_all_outputs(&mut self) -> CrylResult<()> {
-    fn go(this: &mut Manifest, dir: &str) -> CrylResult<()> {
-      for entry in std::fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        // Skip the manifest file itself
-        if path
-          .file_name()
-          .and_then(|n| n.to_str())
-          .map(|n| n.starts_with("cryl-manifest"))
-          .unwrap_or(false)
-        {
-          continue;
-        }
-
-        if path.is_file() {
-          this.record_output(&path)?;
-        } else if path.is_dir()
-          && let Some(dir) = path.to_str()
-        {
-          go(this, dir)?;
-        }
+    for path in read_directory_files(std::env::current_dir()?, true)? {
+      if path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|n| n.starts_with("cryl-manifest"))
+        .unwrap_or(false)
+      {
+        continue;
       }
 
-      Ok(())
+      self.record_output(&path)?;
     }
 
-    go(self, ".")
+    Ok(())
   }
 
   /// Save the manifest to a file

@@ -42,11 +42,10 @@ pub fn run_from_path(
 }
 
 pub fn run_from_stdin(
-  format: &str,
+  format: Format,
   common: &CommonArgs,
   sandbox: &SandboxArgs,
 ) -> CrylResult<()> {
-  let format = Format::parse(format)?;
   let mut content = String::new();
   io::stdin().read_to_string(&mut content)?;
 
@@ -202,8 +201,7 @@ fn run(
     manifest.record_all_outputs()?;
 
     // Parse manifest format from string
-    let manifest_format = Format::parse(&common.manifest_format)?;
-    manifest.save(manifest_format)?;
+    manifest.save(common.manifest_format)?;
   }
 
   Ok(())
@@ -342,8 +340,8 @@ fn run_sandbox(
     let target = bind
       .target
       .as_ref()
-      .map(|t| t.to_string_lossy())
-      .unwrap_or_else(|| abs_source.to_string_lossy());
+      .map(|t| t.to_string())
+      .unwrap_or_else(|| abs_source.to_string_lossy().to_string());
 
     bwrap_args.push("--ro-bind".to_string());
     bwrap_args.push(abs_source.to_string_lossy().to_string());
@@ -356,8 +354,8 @@ fn run_sandbox(
     let target = bind
       .target
       .as_ref()
-      .map(|t| t.to_string_lossy())
-      .unwrap_or_else(|| abs_source.to_string_lossy());
+      .map(|t| t.to_string())
+      .unwrap_or_else(|| abs_source.to_string_lossy().to_string());
 
     bwrap_args.push("--bind".to_string());
     bwrap_args.push(abs_source.to_string_lossy().to_string());

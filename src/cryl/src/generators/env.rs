@@ -1,43 +1,50 @@
-use std::collections::HashMap;
 use std::path::Path;
 
+use itertools::Itertools;
+
 use crate::common::{
-  CrylResult, Format, deserialize_from_file, read_file_if_exists, save_atomic,
+  CrylResult, DirectoryListing, Format, deserialize_from_file, list_directory,
+  save_atomic,
 };
 
 /// Generate an environment (.env-style) file from key-value pairs
 ///
 /// # Arguments
 /// * `name` - Path to save the environment file
-/// * `format` - Input format of variables (json, yaml, toml)
-/// * `vars` - Path to file containing key-value pairs
+/// * `format` - Input format of listing
+/// * `listing` - Path to file containing key-value pairs
 /// * `renew` - Overwrite destination if it exists
 ///
 /// # Description
-/// Reads variables from the specified file. For each value, if it exists as a
-/// file path, reads the file content; otherwise uses the value directly.
-/// Escapes backslashes, newlines, and double quotes in values, then outputs
-/// as KEY="value" format.
+/// Reads variables from the specified listing. Escapes backslashes, newlines,
+/// and double quotes in values, then outputs as KEY="value" format.
 pub fn generate_env(
   name: &Path,
-  format: &str,
-  vars: &Path,
+  format: Format,
+  listing: &Path,
   renew: bool,
 ) -> CrylResult<()> {
-  // Read and deserialize the variables file
-  let format = Format::parse(format)?;
-  let variables: HashMap<String, String> =
-    deserialize_from_file(vars, Some(format))?;
+  // Read and deserialize the listing file
+  let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
+
+  // Keep in variable here so we can consume it with list_directory
+  let is_map = matches!(listing, DirectoryListing::Map(_));
 
   // Process each variable
   let mut lines: Vec<String> = Vec::new();
-  for (key, value) in variables {
-    // Check if value is a file path and read it if so
-    let raw_value = if let Some(content) = read_file_if_exists(&value)? {
-      content
+  for (key, value) in list_directory(std::env::current_dir()?, listing)? {
+    // Convert paths to screaming snake case case
+    let key = if !is_map {
+      Path::new(&key)
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy().to_uppercase())
+        .join("_")
     } else {
-      value
+      key
     };
+
+    // Check if value is a file path and read it if so
+    let raw_value = std::fs::read_to_string(&value)?;
 
     // Escape special characters: backslash, newline, double quote
     let escaped = raw_value
@@ -60,21 +67,32 @@ pub fn generate_env(
 
 #[cfg(test)]
 mod tests {
+  use serial_test::serial;
+
   use super::*;
+  use crate::common::TempCurrentDir;
   use std::fs;
   use std::os::unix::fs::PermissionsExt;
-  use tempfile::TempDir;
+  use std::path::PathBuf;
+  use std::str::FromStr;
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_basic() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
     // Create variables file
-    fs::write(&vars_path, r#"{"KEY1": "value1", "KEY2": "value2"}"#).unwrap();
+    fs::write("key1", "value1").unwrap();
+    fs::write("key2", "value2").unwrap();
+    fs::write(
+      &vars_path,
+      r#"{ "type": "map", "value": { "KEY1": "key1", "KEY2": "key2" } }"#,
+    )
+    .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     assert!(env_path.exists());
     let content = fs::read_to_string(&env_path).unwrap();
@@ -83,42 +101,41 @@ mod tests {
   }
 
   #[test]
-  fn test_generate_env_reads_file_values() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let secret_path = temp.path().join("secret.txt");
-    let env_path = temp.path().join(".env");
+  #[serial(working_directory)]
+  fn test_generate_env_missing_file_fails() {
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
     // Create a secret file
-    fs::write(&secret_path, "my secret password").unwrap();
-
-    // Create variables file referencing the secret file
     fs::write(
       &vars_path,
-      format!(r#"{{"PASSWORD": "{}"}}"#, secret_path.display()),
+      r#"{ "type": "map", "value": { "PASSWORD": "password" } }"#,
     )
     .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
-
-    let content = fs::read_to_string(&env_path).unwrap();
-    assert!(content.contains("PASSWORD=\"my secret password\""));
+    let result = generate_env(&env_path, Format::Json, &vars_path, false);
+    assert!(matches!(result, Err(_)));
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_escapes_special_chars() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
     // Create variables with special characters (using \\n for newline in JSON)
+    fs::write("path", "/home/user/docs").unwrap();
+    fs::write("msg", "Hello\nWorld").unwrap();
+    fs::write("quote", "say \"hi\"").unwrap();
     fs::write(
       &vars_path,
-      r#"{"PATH": "/home/user/docs", "MSG": "Hello\nWorld", "QUOTE": "say \"hi\""}"#,
+      r#"{ "type": "map", "value": { "PATH": "path", "MSG": "msg", "QUOTE": "quote" } }"#,
     )
     .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("PATH=\"/home/user/docs\""));
@@ -127,59 +144,80 @@ mod tests {
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_does_not_trim_whitespace() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
     // Create variables with whitespace
-    fs::write(&vars_path, r#"{"KEY": "  value with spaces  "}"#).unwrap();
+    fs::write("key", "  value with spaces  ").unwrap();
+    fs::write(
+      &vars_path,
+      r#"{ "type": "map", "value": { "KEY": "key" } }"#,
+    )
+    .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("KEY=\"  value with spaces  \""));
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_renew_false_no_overwrite() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, r#"{"KEY": "new"}"#).unwrap();
+    fs::write("key", "new").unwrap();
+    fs::write(
+      &vars_path,
+      r#"{ "type": "map", "value": { "KEY": "key" } }"#,
+    )
+    .unwrap();
     fs::write(&env_path, "KEY=\"old\"").unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert_eq!(content, "KEY=\"old\"");
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_renew_true_overwrites() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, r#"{"KEY": "new"}"#).unwrap();
+    fs::write("key", "new").unwrap();
+    fs::write(
+      &vars_path,
+      r#"{ "type": "map", "value": { "KEY": "key" } }"#,
+    )
+    .unwrap();
     fs::write(&env_path, "KEY=\"old\"").unwrap();
 
-    generate_env(&env_path, "json", &vars_path, true).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, true).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert_eq!(content, "KEY=\"new\"");
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_private_permissions() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, r#"{"KEY": "value"}"#).unwrap();
+    fs::write("key", "value").unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": {"KEY": "key"} }"#)
+      .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let metadata = fs::metadata(&env_path).unwrap();
     let perms = metadata.permissions();
@@ -187,14 +225,26 @@ mod tests {
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_yaml_format() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.yaml");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.yaml").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, "KEY1: value1\nKEY2: value2").unwrap();
+    fs::write("key1", "value1").unwrap();
+    fs::write("key2", "value2").unwrap();
+    fs::write(
+      &vars_path,
+      r#"
+        type: map
+        value:
+          KEY1: key1
+          KEY2: key2
+    "#,
+    )
+    .unwrap();
 
-    generate_env(&env_path, "yaml", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Yaml, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("KEY1=\"value1\""));
@@ -202,14 +252,26 @@ mod tests {
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_toml_format() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.toml");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.toml").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, "KEY1 = \"value1\"\nKEY2 = \"value2\"").unwrap();
+    fs::write("key1", "value1").unwrap();
+    fs::write("key2", "value2").unwrap();
+    fs::write(
+      &vars_path,
+      r#"
+        type = "map"
+        [value]
+        KEY1 = "key1"
+        KEY2 = "key2"
+    "#,
+    )
+    .unwrap();
 
-    generate_env(&env_path, "toml", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Toml, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("KEY1=\"value1\""));
@@ -217,44 +279,54 @@ mod tests {
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_empty_variables() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, "{}").unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": { } }"#).unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert_eq!(content, "");
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_handles_carriage_return() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str(".env").unwrap();
 
-    fs::write(&vars_path, r#"{"TEXT": "line1\r\nline2"}"#).unwrap();
+    fs::write("text", "line1\r\nline2").unwrap();
+    fs::write(
+      &vars_path,
+      r#"{ "type": "map", "value": { "TEXT": "text" } }"#,
+    )
+    .unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     let content = fs::read_to_string(&env_path).unwrap();
     assert!(content.contains("TEXT=\"line1\\r\\nline2\""));
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_vars_subdir() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("subdir").join("vars.json");
-    let env_path = temp.path().join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("subdir").unwrap().join("vars.json");
+    let env_path = PathBuf::from_str(".env").unwrap();
 
     // Create variables file
     fs::create_dir_all(vars_path.parent().unwrap()).unwrap();
-    fs::write(&vars_path, r#"{"KEY1": "value1", "KEY2": "value2"}"#).unwrap();
+    fs::write("./subdir/key1", "value1").unwrap();
+    fs::write("key2", "value2").unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "./subdir/key1", "KEY2": "key2" } }"#).unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     assert!(env_path.exists());
     let content = fs::read_to_string(&env_path).unwrap();
@@ -263,15 +335,19 @@ mod tests {
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_generate_env_env_subdir() {
-    let temp = TempDir::new().unwrap();
-    let vars_path = temp.path().join("vars.json");
-    let env_path = temp.path().join("subdir").join(".env");
+    let _temp = TempCurrentDir::new().unwrap();
+    let vars_path = PathBuf::from_str("vars.json").unwrap();
+    let env_path = PathBuf::from_str("subdir").unwrap().join(".env");
 
     // Create variables file
-    fs::write(&vars_path, r#"{"KEY1": "value1", "KEY2": "value2"}"#).unwrap();
+    fs::create_dir_all("subdir2").unwrap();
+    fs::write("./subdir2/key1", "value1").unwrap();
+    fs::write("key2", "value2").unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "./subdir2/key1", "KEY2": "key2" } }"#).unwrap();
 
-    generate_env(&env_path, "json", &vars_path, false).unwrap();
+    generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
     assert!(env_path.exists());
     let content = fs::read_to_string(&env_path).unwrap();
