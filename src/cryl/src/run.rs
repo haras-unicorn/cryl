@@ -435,6 +435,13 @@ fn run_sandbox(
   bwrap_args.push("PATH".to_string());
   bwrap_args.push("/tools".to_string());
 
+  // Handle environment passthrough
+  for var in sandbox.env.iter() {
+    bwrap_args.push("--setenv".to_string());
+    bwrap_args.push(var.clone());
+    bwrap_args.push(std::env::var(var)?);
+  }
+
   // Add the cryl command - use the original path if on NixOS, otherwise /bin/cryl
   let current_exe_str = current_exe.to_string_lossy().to_string();
   let cryl_path = if current_exe_str.starts_with("/nix/store/") {
@@ -463,6 +470,9 @@ fn run_sandbox(
   }
   if common.very_verbose {
     bwrap_args.push("--very-verbose".to_string());
+  }
+  if common.envsubst {
+    bwrap_args.push("--envsubst".to_string());
   }
 
   // Add max limits

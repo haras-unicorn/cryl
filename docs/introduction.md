@@ -2,30 +2,32 @@
 
 A small tool for generating, encrypting, and managing secrets.
 
-cryl allows you to create and renew secrets using a specification. The
-specification contains instructions for cryl for how to import existing secrets,
-generate or renew secrets and export those secrets in that order.
+`cryl` allows you to create and renew secrets using a specification. The
+specification contains instructions for `cryl` for how to import existing
+secrets, generate or renew secrets and export those secrets in that order.
 
-All imports, generations and exports happen in the order of execution as
-specified in the specification.
+`cryl` can also be used as a Nix flake-parts module or NixOS test module
+directly integrating with `sops-nix` to allow you to generate all secrets you
+need for all of your NixOS configurations and test them. More on this
+integration can be found in the [nix chapter](./nix.md) of this book.
 
 ## Installation
 
-cryl is available as the default nix package of the [cryl flake]. cryl is
+`cryl` is available as the default Nix package of the [cryl flake]. `cryl` is
 supported on all default systems.
 
 ## Invoking
 
-You can invoke cryl in two ways:
+You can invoke `cryl` in two ways:
 
-1. `cryl <path>`: This tells cryl to load the specification from the given path.
-   Supported formats are json, yaml and toml. cryl automatically detects the
-   format of the specification via the file extension.
-2. `... | cryl stdin <format>`: This tells cryl to load the specification from
-   standard input. In this mode you have to tell cryl the format of the
+1. `cryl <path>`: This tells `cryl` to load the specification from the given
+   path. Supported formats are json, yaml and toml. `cryl` automatically detects
+   the format of the specification via the file extension.
+2. `... | cryl stdin <format>`: This tells `cryl` to load the specification from
+   standard input. In this mode you have to tell `cryl` the format of the
    specification.
 
-cryl will always take these arguments into account:
+`cryl` will always take these arguments into account:
 
 - `--dry-run`- don't run exports
 - `--allow-script`- allow script generator
@@ -43,13 +45,13 @@ cryl will always take these arguments into account:
 
 ### Manifest
 
-After each successful run, cryl creates a manifest file (`cryl-manifest.json` by
-default) in the working directory. This manifest serves as an audit trail and
+After each successful run, `cryl` creates a manifest file (`cryl-manifest.json`
+by default) in the working directory. This manifest serves as an audit trail and
 helps detect supply chain attacks or tampering.
 
 The manifest contains:
 
-- **cryl_version** - The version of cryl used
+- **cryl_version** - The version of `cryl` used
 - **timestamp** - When the run occurred (ISO 8601 / RFC 3339 format)
 - **cli_hash** - SHA256 hash of the CLI invocation in format
   `<command> ...<args>` (space-delimited) before sandboxing
@@ -73,37 +75,38 @@ error. The manifest file itself is not included in output_hashes.
 
 ### Sandbox
 
-By default, cryl runs in a [bubblewrap] sandbox. The `--nosandbox` argument can
-be provided to disable the sandbox. When cryl is running in a sandbox the
+By default, `cryl` runs in a [bubblewrap] sandbox. The `--nosandbox` argument
+can be provided to disable the sandbox. When `cryl` is running in a sandbox the
 following arguments will be taken into account:
 
 - `--ro-binds: list<string> = []`- additional read-only bind mounts to add to
   bubblewrap in format `<target and source>,<target>:<source>,...`
 - `--binds: list<string> = []`- additional bind mounts to add to bubblewrap in
   format `<target and source>,<target>:<source>,...`
-- `--tools: list<string> = []`- additional list of tool binaries that cryl is
+- `--tools: list<string> = []`- additional list of tool binaries that `cryl` is
   allowed to access via PATH
+- `--env: list<string> = []` - environment variables to pass through
 - `--allow-net`- allow network while running
 
-When not in a sandbox, cryl will take these arguments into account:
+When not in a sandbox, `cryl` will take these arguments into account:
 
-- `--stay`: By default, cryl will create a temporary directory and change its
-  directory to it. You can instruct cryl to stay in the directory in which it
+- `--stay`: By default, `cryl` will create a temporary directory and change its
+  directory to it. You can instruct `cryl` to stay in the directory in which it
   was invoked by passing this argument.
-- `--keep`: By default, cryl will delete the contents of the working directory
+- `--keep`: By default, `cryl` will delete the contents of the working directory
   at the end of its execution. This is a safety precaution so that your
   filesystem doesn't contain secrets in plaintext for anyone to see after it is
   done with work. You can disable this behavior by passing this argument.
 
-cryl also allows you to invoke all of the importers, generators and exporters on
-their own. Please note, however, that while cryl does have safety precautions
-when using it in the main ways as described here, invoking the importers,
-generators and exporters by themselves is done with minimal safety precautions
-which is limited to setting file permissions on generated files.
+`cryl` also allows you to invoke all of the importers, generators and exporters
+on their own. Please note, however, that while `cryl` does have safety
+precautions when using it in the main ways as described here, invoking the
+importers, generators and exporters by themselves is done with minimal safety
+precautions which is limited to setting file permissions on generated files.
 
 ### Additional Commands
 
-In addition to the main commands above, cryl provides several other commands:
+In addition to the main commands above, `cryl` provides several other commands:
 
 - `cryl schema`: Print the JSON schema used to validate specifications to
   stdout. This can be useful for IDE integration or validation tools.
@@ -124,6 +127,9 @@ In addition to the main commands above, cryl provides several other commands:
   exporters and their arguments.
 
 ## Specification
+
+All imports, generations and exports happen in the order of execution as
+specified in the specification.
 
 Here is an example of the specification in TOML format:
 
@@ -162,10 +168,10 @@ arguments.from = "key"
 arguments.to = "../key"
 ```
 
-This specification will instruct cryl to do the following:
+This specification will instruct `cryl` to do the following:
 
 1. Copy the `../id` and then `../key` files into the working directory while
-   allowing cryl to fail if the files do not exist (useful when generating
+   allowing `cryl` to fail if the files do not exist (useful when generating
    secrets for the first time) time)
 
 2. Generate the `id` file with the contents of a alphanumeric identifier of
@@ -177,7 +183,14 @@ This specification will instruct cryl to do the following:
 4. Copy the `id` file into `../id` and then the `key` file into `../key`
    overwriting the original files if they exist
 
-cryl validates every specification against the [schema.json] file.
+`cryl` validates every specification against the [schema.json] file.
+
+A list of all importers/generators/exporters and their descriptions can be found
+in their respective chapters of this book:
+
+- [importers](./importers.md)
+- [generators](./generators.md)
+- [exporters](./exporters.md)
 
 ### Directory listing
 
