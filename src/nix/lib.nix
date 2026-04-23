@@ -48,7 +48,7 @@
       cd "$(flake-root)"
 
       # NOTE: CI is always dirty
-      if [[ -z "$CI" ]]; then
+      if [[ -z "''${CI:-}" ]]; then
         if ! git diff --quiet; then
           echo "Please run with a clean working directory"
           exit 1
@@ -117,7 +117,7 @@
       test="$1"
       shift
       nix build \
-        ".#checks.$(uname -m)-linux.test-''${test}.wishSshBackdoor" \
+        ".#checks.$(uname -m)-linux.test-''${test}.withSshBackdoor" \
         --option sandbox-paths /dev/vhost-vsock \
         "$@"
     '';
@@ -125,7 +125,7 @@
       test="$1"
       shift
       nix run \
-        ".#checks.$(uname -m)-linux.test-''${test}.wishSshBackdoor.driverInteractive" \
+        ".#checks.$(uname -m)-linux.test-''${test}.withSshBackdoor.driverInteractive" \
         "$@"
     '';
   };
