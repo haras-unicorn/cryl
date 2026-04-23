@@ -36,6 +36,14 @@ in
 
                 options = {
                   sops = {
+                    specifications = lib.mkOption {
+                      type = lib.types.listOf (lib.types.enum (builtins.attrNames config.specifications));
+                      default = [ "default" ];
+                      description = ''
+                        Specifications to run as part of the build command for the SOPS files package.
+                      '';
+                    };
+
                     package = lib.mkOption {
                       type = lib.types.package;
                       readOnly = true;
@@ -60,7 +68,17 @@ in
         config = {
           cryl.sops.package = lib.mkIf cfg.enable (
             let
-              defaultSpecification = pkgs.writers.writeTOML "default-cryl-specification.toml" cfg.specifications.default;
+              specifications =
+                builtins.map ({ name, value }: pkgs.writers.writeTOML "${name}-cryl-specification.toml" value)
+                  (
+                    builtins.filter ({ name, ... }: builtins.elem name cfg.sops.specifications) (
+                      lib.attrsToList cfg.specifications
+                    )
+                  );
+
+              invocations = builtins.concatStringsSep "\n" (
+                builtins.map (specification: "${cfg.shellInvocationForPath} ${specification}") specifications
+              );
             in
             pkgs.runCommand "cryl-sops-package"
               {
@@ -68,7 +86,7 @@ in
               }
               ''
                 mkdir -p $out
-                ${cfg.shellInvocationForPath} ${defaultSpecification}
+                ${invocations}
               ''
           );
 
