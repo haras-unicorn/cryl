@@ -97,57 +97,68 @@ in
 
               config = lib.mkMerge [
                 (lib.mkIf cfg.enable (
-                  lib.mkIf (options ? sops) {
-                    sops.defaultSopsFile = "${sopsPackage}/${cfg.sops.path}";
-                    sops.age.keyFile = "/etc/sops/age.txt";
-                    environment.etc."sops/age.txt".source = "${sopsPackage}/${cfg.sops.age.path}";
-                  }
+                  if !(options ? sops) then
+                    { }
+                  else
+                    {
+                      sops.defaultSopsFile = "${sopsPackage}/${cfg.sops.path}";
+                      sops.age.keyFile = "/etc/sops/age.txt";
+                      environment.etc."sops/age.txt".source = "${sopsPackage}/${cfg.sops.age.path}";
+                    }
                 ))
-                (lib.mkIf (options ? home-manager) {
-                  home-manager.sharedModules = [
-                    (
-                      {
-                        lib,
-                        config,
-                        osConfig,
-                        options,
-                        ...
-                      }:
-                      let
-                        cfg = config.cryl;
-                      in
-                      {
-                        options.cryl = lib.mkOption {
-                          type = lib.types.submodule {
-                            imports = [ crylSelf.lib.submodules.nixosOrHome ];
+                (
+                  if !(options ? home-manager) then
+                    { }
+                  else
+                    {
+                      home-manager.sharedModules = [
+                        (
+                          {
+                            lib,
+                            config,
+                            osConfig,
+                            options,
+                            ...
+                          }:
+                          let
+                            cfg = config.cryl;
+                          in
+                          {
+                            options.cryl = lib.mkOption {
+                              type = lib.types.submodule {
+                                imports = [ crylSelf.lib.submodules.nixosOrHome ];
 
-                            sops.defaultPath =
-                              if osConfig ? cryl && osConfig.cryl.enable then
-                                osConfig.cryl.sops.path
+                                sops.defaultPath =
+                                  if osConfig ? cryl && osConfig.cryl.enable then
+                                    osConfig.cryl.sops.path
+                                  else
+                                    "sops/${osConfig.networking.hostName}-${config.home.username}.yaml";
+
+                                sops.age.defaultPath =
+                                  if osConfig ? cryl && osConfig.cryl.enable then
+                                    osConfig.cryl.sops.age.path
+                                  else
+                                    "age/${osConfig.networking.hostName}-${config.home.username}.txt";
+                              };
+                              default = { };
+                              description = "Cryl config for this home configuration";
+                            };
+
+                            config = lib.mkIf cfg.enable (
+                              if !(options ? sops) then
+                                { }
                               else
-                                "sops/${osConfig.networking.hostName}-${config.home.username}.yaml";
-
-                            sops.age.defaultPath =
-                              if osConfig ? cryl && osConfig.cryl.enable then
-                                osConfig.cryl.sops.age.path
-                              else
-                                "age/${osConfig.networking.hostName}-${config.home.username}.txt";
-                          };
-                          default = { };
-                          description = "Cryl config for this home configuration";
-                        };
-
-                        config = lib.mkIf cfg.enable (
-                          lib.mkIf (options ? sops) {
-                            sops.defaultSopsFile = "${sopsPackage}/${cfg.sops.path}";
-                            sops.age.keyFile = "${config.xdg.dataHome}/sops/age.txt";
-                            xdg.dataFile."sops/age.txt".source = "${sopsPackage}/${cfg.sops.age.path}";
+                                {
+                                  sops.defaultSopsFile = "${sopsPackage}/${cfg.sops.path}";
+                                  sops.age.keyFile = "${config.xdg.dataHome}/sops/age.txt";
+                                  xdg.dataFile."sops/age.txt".source = "${sopsPackage}/${cfg.sops.age.path}";
+                                }
+                            );
                           }
-                        );
-                      }
-                    )
-                  ];
-                })
+                        )
+                      ];
+                    }
+                )
               ];
             }
           );
