@@ -68,13 +68,9 @@ in
         config = {
           cryl.sops.package = lib.mkIf cfg.enable (
             let
-              specifications =
-                builtins.map ({ name, value }: pkgs.writers.writeTOML "${name}-cryl-specification.toml" value)
-                  (
-                    builtins.filter ({ name, ... }: builtins.elem name cfg.sops.specifications) (
-                      lib.attrsToList cfg.specifications
-                    )
-                  );
+              specifications = builtins.map (
+                name: pkgs.writers.writeTOML "${name}-cryl-specification.toml" cfg.specifications.${name}
+              ) cfg.sops.specifications;
 
               invocations = builtins.concatStringsSep "\n" (
                 builtins.map (specification: "${cfg.shellInvocationForPath} ${specification}") specifications
