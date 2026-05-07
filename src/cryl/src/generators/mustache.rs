@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -39,24 +38,21 @@ pub fn generate_mustache(
   let input: MustacheInput =
     deserialize_from_file(listing_and_template, Some(format))?;
 
-  // Keep in variable here so we can consume it with list_directory
-  let is_map = matches!(input.listing, DirectoryListing::Map(_));
-
-  // Process each variable
-  let mut context: HashMap<String, String> = HashMap::new();
-  for (key, value) in list_directory(std::env::current_dir()?, input.listing)? {
-    // Convert paths to screaming snake case
-    let key = if !is_map {
-      Path::new(&key)
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy().to_uppercase())
-        .join("_")
-    } else {
-      key
-    };
-
-    context.insert(key, std::fs::read_to_string(value)?);
-  }
+  // List directory
+  let context =
+    list_directory(std::env::current_dir()?, &input.listing, false, "_")?
+      .iter()
+      .map(|(key, value)| {
+        (
+          if matches!(input.listing, DirectoryListing::Map(_)) {
+            key.clone()
+          } else {
+            key.replace(".", "_").to_uppercase()
+          },
+          String::from_utf8_lossy(value.as_slice()).to_string(),
+        )
+      })
+      .collect::<HashMap<_, _>>();
 
   // Parse and render the template
   let template = mustache::compile_str(&input.template)?;
@@ -341,12 +337,10 @@ name = "name"
 
     fs::write(&content_path, "line1\nline2\nline3").unwrap();
     let input = serde_json::json!({
-      "template": "Content:\n{{data}}",
+      "template": "Content:\n{{CONTENT_TXT}}",
       "listing": {
-        "type": "map",
-        "value": {
-          "data": content_path.to_str().unwrap()
-        }
+        "type": "list",
+        "value": [ content_path.to_str().unwrap() ]
       }
     });
     fs::write(&input_path, input.to_string()).unwrap();

@@ -104,6 +104,7 @@ in
 
                   sops.defaultPath = "sops/${config.networking.hostName}.yaml";
                   sops.age.defaultPath = "age/${config.networking.hostName}.txt";
+                  sops.age.defaultExport = true;
                 };
                 default = { };
                 description = "Cryl config for this node";
@@ -153,6 +154,8 @@ in
                                     osConfig.cryl.sops.age.path
                                   else
                                     "age/${osConfig.networking.hostName}-${config.home.username}.txt";
+
+                                sops.age.defaultExport = true;
                               };
                               default = { };
                               description = "Cryl config for this home configuration";

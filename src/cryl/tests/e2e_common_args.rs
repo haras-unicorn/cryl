@@ -24,7 +24,8 @@ imports = []
 
 [[exports]]
 exporter = "copy"
-arguments.from = "generated.txt"
+arguments.listing.type = "map"
+arguments.listing.value."generated.txt" = "generated.txt"
 arguments.to = "{}"
 
 [[generations]]
@@ -75,20 +76,20 @@ exports = []
 
 [[imports]]
 importer = "copy"
-arguments.from = "dummy1.txt"
-arguments.to = "import1.txt"
+arguments.from = "."
+arguments.listing.type = "flat"
 arguments.allow_fail = true
 
 [[imports]]
 importer = "copy"
-arguments.from = "dummy2.txt"
-arguments.to = "import2.txt"
+arguments.from = "."
+arguments.listing.type = "flat"
 arguments.allow_fail = true
 
 [[imports]]
 importer = "copy"
-arguments.from = "dummy3.txt"
-arguments.to = "import3.txt"
+arguments.from = "."
+arguments.listing.type = "flat"
 arguments.allow_fail = true
 
 [[generations]]
@@ -204,18 +205,18 @@ imports = []
 
 [[exports]]
 exporter = "copy"
-arguments.from = "file1.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[exports]]
 exporter = "copy"
-arguments.from = "file2.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[exports]]
 exporter = "copy"
-arguments.from = "file3.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[generations]]
 generator = "text"
@@ -405,8 +406,9 @@ imports = []
 
 [[exports]]
 exporter = "copy"
-arguments.from = "test.nu"
-arguments.to = "/dev/null"
+arguments.listing.type = "map"
+arguments.listing.value."test.nu" = "test.nu"
+arguments.to = "."
 
 [[generations]]
 generator = "script"
@@ -451,24 +453,24 @@ fn test_default_max_limits_sufficient() {
   let spec_content = r#"
 [[exports]]
 exporter = "copy"
-arguments.from = "gen1.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[exports]]
 exporter = "copy"
-arguments.from = "gen2.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[imports]]
 importer = "copy"
-arguments.from = "dummy1.txt"
-arguments.to = "import1.txt"
+arguments.listing.type = "flat"
+arguments.from = "."
 arguments.allow_fail = true
 
 [[imports]]
 importer = "copy"
-arguments.from = "dummy2.txt"
-arguments.to = "import2.txt"
+arguments.listing.type = "flat"
+arguments.from = "."
 arguments.allow_fail = true
 
 [[generations]]

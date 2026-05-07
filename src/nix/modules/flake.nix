@@ -54,6 +54,7 @@ in
 
                     sops.defaultPath = "sops/${config.networking.hostName}.yaml";
                     sops.age.defaultPath = "age/${config.networking.hostName}.txt";
+                    sops.age.defaultExport = false;
                   };
                   default = { };
                   description = "Cryl config for this nixos configuration";
@@ -132,6 +133,8 @@ in
                             osConfig.cryl.sops.path
                           else
                             "age/${osConfig.networking.hostName}-${config.home.username}.txt";
+
+                        sops.age.defaultExport = false;
                       };
                       default = { };
                       description = "Cryl config for this home configuration";

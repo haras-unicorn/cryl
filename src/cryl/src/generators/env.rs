@@ -1,7 +1,5 @@
 use std::path::Path;
 
-use itertools::Itertools;
-
 use crate::common::{
   CrylResult, DirectoryListing, Format, deserialize_from_file, list_directory,
   save_atomic,
@@ -27,33 +25,19 @@ pub fn generate_env(
   // Read and deserialize the listing file
   let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
 
-  // Keep in variable here so we can consume it with list_directory
-  let is_map = matches!(listing, DirectoryListing::Map(_));
-
   // Process each variable
   let mut lines: Vec<String> = Vec::new();
-  for (key, value) in list_directory(std::env::current_dir()?, listing)? {
-    // Convert paths to screaming snake case case
-    let key = if !is_map {
-      Path::new(&key)
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy().to_uppercase())
-        .join("_")
-    } else {
-      key
-    };
-
-    // Check if value is a file path and read it if so
-    let raw_value = std::fs::read_to_string(&value)?;
-
+  for (key, value) in
+    list_directory(std::env::current_dir()?, &listing, false, "_")?
+  {
     // Escape special characters: backslash, newline, double quote
-    let escaped = raw_value
+    let escaped = String::from_utf8_lossy(value.as_slice())
       .replace('\\', "\\\\")
       .replace('\n', "\\n")
       .replace('\r', "\\r")
       .replace('"', "\\\"");
 
-    lines.push(format!("{}=\"{}\"", key, escaped));
+    lines.push(format!("{}=\"{}\"", key.to_uppercase(), escaped));
   }
 
   // Join lines with newlines
@@ -322,9 +306,9 @@ mod tests {
 
     // Create variables file
     fs::create_dir_all(vars_path.parent().unwrap()).unwrap();
-    fs::write("./subdir/key1", "value1").unwrap();
+    fs::write("subdir/key1", "value1").unwrap();
     fs::write("key2", "value2").unwrap();
-    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "./subdir/key1", "KEY2": "key2" } }"#).unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "subdir/key1", "KEY2": "key2" } }"#).unwrap();
 
     generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 
@@ -343,9 +327,9 @@ mod tests {
 
     // Create variables file
     fs::create_dir_all("subdir2").unwrap();
-    fs::write("./subdir2/key1", "value1").unwrap();
+    fs::write("subdir2/key1", "value1").unwrap();
     fs::write("key2", "value2").unwrap();
-    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "./subdir2/key1", "KEY2": "key2" } }"#).unwrap();
+    fs::write(&vars_path, r#"{ "type": "map", "value": { "KEY1": "subdir2/key1", "KEY2": "key2" } }"#).unwrap();
 
     generate_env(&env_path, Format::Json, &vars_path, false).unwrap();
 

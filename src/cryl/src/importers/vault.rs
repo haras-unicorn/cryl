@@ -1,16 +1,27 @@
-use std::{path::Path, process::Output};
+use std::{
+  path::{Path, PathBuf},
+  process::Output,
+};
 
-use crate::common::{CrylError, CrylResult, save_atomic};
+use crate::common::{
+  CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
+  list_directory, save_atomic,
+};
 
-/// Vault importer - imports all files from a Vault KV path to current directory
-pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
+/// Vault importer - imports specified files from a Vault KV path to current directory
+pub fn import_vault(
+  path: &str,
+  format: Format,
+  listing: &Path,
+  allow_fail: bool,
+) -> CrylResult<()> {
   // Function to process output of commands into a YAML mapping
   fn process_output_into_yaml_mapping(
     path: &str,
     prefix: &[&str],
     allow_fail: bool,
     output_result: std::io::Result<Output>,
-  ) -> CrylResult<Option<serde_yaml::Mapping>> {
+  ) -> CrylResult<Option<serde_yaml::Value>> {
     let output = match output_result {
       Ok(output) => output,
       Err(_) if allow_fail => {
@@ -62,52 +73,26 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
       }
     };
 
-    // Extract files from current/ directory
-    let files = match prefix
-      .iter()
-      .try_fold(&parsed, |acc, next| acc.get(*next))
-      .and_then(|current| current.as_mapping())
-    {
-      Some(mapping) => mapping,
-      None => {
-        if allow_fail {
-          return Ok(None);
+    // Extract files from prefix directory
+    let files =
+      match prefix.iter().try_fold(&parsed, |acc, next| acc.get(*next)) {
+        Some(value) => value,
+        None => {
+          if allow_fail {
+            return Ok(None);
+          }
+          return Err(CrylError::Import {
+            importer: "vault".to_string(),
+            message: format!("Invalid type for key: {}", path),
+          });
         }
-        return Err(CrylError::Import {
-          importer: "vault".to_string(),
-          message: format!("Invalid type for key: {}", path),
-        });
-      }
-    };
+      };
 
     Ok(Some(files.clone()))
   }
 
-  // Function to save files from YAML mapping
-  fn save_atomic_recursive_from_yaml_mapping(
-    path: &Path,
-    files: &serde_yaml::Mapping,
-  ) -> CrylResult<()> {
-    for (key, value) in files {
-      let key_str = key.as_str().unwrap_or_default();
-
-      if let Some(value_str) = value.as_str() {
-        save_atomic(path.join(key_str), value_str.as_bytes(), true, false)?;
-      } else if let Some(next_files) = value.as_mapping() {
-        save_atomic_recursive_from_yaml_mapping(
-          &path.join(key_str),
-          next_files,
-        )?;
-      } else {
-        return Err(CrylError::Import {
-          importer: "vault".to_string(),
-          message: format!("Unknown file type of {key_str}"),
-        });
-      }
-    }
-
-    Ok(())
-  }
+  // Read listing early for early error
+  let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
 
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
@@ -147,16 +132,19 @@ pub fn import_vault(path: &str, allow_fail: bool) -> CrylResult<()> {
 
   // Save whatever we got
   if let Ok(Some(medusa_files)) = &medusa_result {
-    save_atomic_recursive_from_yaml_mapping(
-      &std::env::current_dir()?,
-      medusa_files,
-    )?;
+    let medusa_listing =
+      list_directory(medusa_files, &listing, allow_fail, "/")?;
+    for (key, value) in medusa_listing {
+      let path = PathBuf::from_iter(key.split("/"));
+      save_atomic(path, value.as_slice(), true, false)?;
+    }
   }
   if let Ok(Some(vault_files)) = &vault_result {
-    save_atomic_recursive_from_yaml_mapping(
-      &std::env::current_dir()?,
-      vault_files,
-    )?;
+    let vault_listing = list_directory(vault_files, &listing, allow_fail, "/")?;
+    for (key, value) in vault_listing {
+      let path = PathBuf::from_iter(key.split("/"));
+      save_atomic(path, value.as_slice(), true, false)?;
+    }
   }
 
   // Exit if both failed
@@ -179,6 +167,7 @@ mod tests {
   use super::*;
   use crate::common::{TempCurrentDir, vault_container};
   use serial_test::serial;
+  use std::collections::HashMap;
   use std::process::Command;
 
   #[tokio::test]
@@ -190,16 +179,21 @@ mod tests {
     let file = "secret.txt";
     let content = "top-secret";
 
-    // Write test data
     Command::new("vault")
       .args(["kv", "put", &key, &format!("{file}={content}")])
       .output()?;
 
-    // Now test import_vault using medusa (which uses Vault API)
     let _temp = TempCurrentDir::new()?;
-    import_vault(key, false)?;
+    let mut listing = HashMap::new();
+    listing.insert(file.to_owned(), PathBuf::from(file));
+    let listing_path = std::env::current_dir()?.join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path)?,
+      &DirectoryListing::Map(listing),
+    )?;
 
-    // Check file content is ok
+    import_vault(key, Format::Json, &listing_path, false)?;
+
     let result = std::fs::read_to_string(file)?;
     assert_eq!(result, content);
 
@@ -217,7 +211,6 @@ mod tests {
     let second_file = "config.yaml";
     let second_content = "port: 8080";
 
-    // Write multiple values
     Command::new("vault")
       .args([
         "kv",
@@ -228,17 +221,20 @@ mod tests {
       ])
       .output()?;
 
-    // Now test import_vault using medusa (which uses Vault API)
     let _temp = TempCurrentDir::new()?;
-    import_vault(key, false)?;
+    let mut listing = HashMap::new();
+    listing.insert(first_file.to_owned(), PathBuf::from(first_file));
+    listing.insert(second_file.to_owned(), PathBuf::from(second_file));
+    let listing_path = std::env::current_dir()?.join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path)?,
+      &DirectoryListing::Map(listing),
+    )?;
 
-    // Check first file content is ok
-    let result = std::fs::read_to_string(first_file)?;
-    assert_eq!(result, first_content);
+    import_vault(key, Format::Json, &listing_path, false)?;
 
-    // Check second file content is ok
-    let result = std::fs::read_to_string(second_file)?;
-    assert_eq!(result, second_content);
+    assert_eq!(std::fs::read_to_string(first_file)?, first_content);
+    assert_eq!(std::fs::read_to_string(second_file)?, second_content);
 
     Ok(())
   }
@@ -249,8 +245,6 @@ mod tests {
   async fn test_import_vault_mixed_depth() -> anyhow::Result<()> {
     let _container = vault_container("vault-mixed-test").await?;
     let key = "kv/my-app";
-
-    // Root file + nested directory
     let root_file = "config.yaml";
     let root_content = "port: 8080";
     let subdir = "secrets";
@@ -268,12 +262,21 @@ mod tests {
       .output()?;
 
     let _temp = TempCurrentDir::new()?;
-    import_vault(key, false)?;
+    let mut listing = HashMap::new();
+    listing.insert(root_file.to_owned(), PathBuf::from(root_file));
+    listing.insert(
+      format!("{subdir}/{nested_file}"),
+      PathBuf::from(format!("{subdir}/{nested_file}")),
+    );
+    let listing_path = std::env::current_dir()?.join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path)?,
+      &DirectoryListing::Map(listing),
+    )?;
 
-    // Check root file
+    import_vault(key, Format::Json, &listing_path, false)?;
+
     assert_eq!(std::fs::read_to_string(root_file)?, root_content);
-
-    // Check nested structure
     assert_eq!(
       std::fs::read_to_string(format!("{subdir}/{nested_file}"))?,
       nested_content
@@ -288,8 +291,6 @@ mod tests {
   async fn test_import_vault_deep_nesting() -> anyhow::Result<()> {
     let _container = vault_container("vault-nested-test").await?;
     let key = "kv/my-app";
-
-    // Only nested files at depth (no root files)
     let deep_path = "config/production/database";
     let deep_file = "connection.yaml";
     let deep_content = "host: localhost\nport: 5432";
@@ -304,18 +305,25 @@ mod tests {
       .output()?;
 
     let _temp = TempCurrentDir::new()?;
-    import_vault(key, false)?;
+    let mut listing = HashMap::new();
+    listing.insert(
+      format!("{deep_path}/{deep_file}"),
+      PathBuf::from(format!("{deep_path}/{deep_file}")),
+    );
+    let listing_path = std::env::current_dir()?.join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path)?,
+      &DirectoryListing::Map(listing),
+    )?;
 
-    // Ensure directory structure created
+    import_vault(key, Format::Json, &listing_path, false)?;
+
     assert!(Path::new(&deep_path).exists());
-
-    // Verify deep file content
     assert_eq!(
       std::fs::read_to_string(format!("{deep_path}/{deep_file}"))?,
       deep_content
     );
 
-    // Verify no unexpected root files
     let root_entries: Vec<_> = std::fs::read_dir(std::env::current_dir()?)?
       .filter_map(|e| e.ok())
       .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
@@ -334,10 +342,17 @@ mod tests {
   #[serial(working_directory)]
   async fn test_import_vault_missing_path_allow_fail() -> anyhow::Result<()> {
     let _container = vault_container("vault-missing-test").await?;
-
-    // Test random non-existent key
     let _temp = TempCurrentDir::new()?;
-    import_vault("kv/nonexistent", true)?;
+
+    // Empty listing — no files expected
+    let listing: HashMap<String, PathBuf> = HashMap::new();
+    let listing_path = std::env::current_dir()?.join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path)?,
+      &DirectoryListing::Map(listing),
+    )?;
+
+    import_vault("kv/nonexistent", Format::Json, &listing_path, true)?;
 
     Ok(())
   }

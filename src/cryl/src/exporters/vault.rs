@@ -1,8 +1,8 @@
 use crate::common::{
-  CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
-  list_directory,
+  CrylError, CrylResult, DirectoryListing, Format, InMemoryFilesystem,
+  deserialize_from_file, list_directory,
 };
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Vault exporter - exports all files in directory listing
 pub fn export_vault(
@@ -16,73 +16,21 @@ pub fn export_vault(
   // Trim trailing slashes
   let trimmed_path = path.trim_end_matches('/');
 
-  // Keep in variable here so we can consume it with list_directory
-  let is_map = matches!(listing, DirectoryListing::Map(_));
-
   // List directory
-  let files = list_directory(std::env::current_dir()?, listing)?;
+  let files = list_directory(std::env::current_dir()?, &listing, false, "/")?;
 
   // Return early to avoid sending an empty request
   if files.is_empty() {
     return Ok(());
   }
 
-  // Build YAML structure
-  let mut yaml_map = serde_yaml::Mapping::new();
-  for (key, file) in files {
-    // Extract components
-    let components = if !is_map {
-      Path::new(&key)
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy().to_string())
-        .collect::<Vec<_>>()
-    } else {
-      key
-        .split('/')
-        .map(|component| component.to_string())
-        .collect::<Vec<_>>()
-    };
+  // Convert to intermediary filesystem
+  let filesystem = InMemoryFilesystem::from_listing(files, "/");
 
-    fn insert_recursive(
-      components: &[String],
-      file: PathBuf,
-      map: &mut serde_yaml::Mapping,
-    ) -> CrylResult<()> {
-      let Some(first) = components.first() else {
-        return Ok(());
-      };
+  // Convert to yaml
+  let yaml_map: serde_yaml::Value = filesystem.into();
 
-      let key = serde_yaml::Value::String(first.clone());
-      if components.len() == 1 {
-        map.insert(
-          key,
-          serde_yaml::Value::String(std::fs::read_to_string(file)?),
-        );
-        return Ok(());
-      }
-
-      let next_map = if let Some(next_map) = map
-        .get_mut(key.clone())
-        .and_then(|value| value.as_mapping_mut())
-      {
-        next_map
-      } else {
-        map.insert(
-          key.clone(),
-          serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
-        );
-        #[allow(clippy::unwrap_used, reason = "just added it")]
-        map.get_mut(key).unwrap().as_mapping_mut().unwrap()
-      };
-
-      insert_recursive(&components[1..], file, next_map)?;
-
-      Ok(())
-    }
-
-    insert_recursive(&components, file, &mut yaml_map)?;
-  }
-
+  // Convert to yaml string
   let yaml_content =
     serde_yaml::to_string(&yaml_map).map_err(|e| CrylError::Export {
       exporter: "vault".to_string(),

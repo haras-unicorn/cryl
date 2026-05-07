@@ -8,6 +8,14 @@ _Default:_ `false`
 
 _Example:_ `true`
 
+## sops\.age\.export
+
+Whether to export the private SOPS age file
+
+_Type:_ boolean
+
+_Default:_ `true` for tests and `false` for flakes
+
 ## sops\.age\.path
 
 Age private key location relative to the root of the output\. For tests relative
@@ -16,6 +24,22 @@ root\. Make sure to add this path to gitignore\.
 
 _Type:_ string
 
+## sops\.age\.private
+
+Name of the generated private age key
+
+_Type:_ string
+
+_Default:_ `"age-private"`
+
+## sops\.age\.public
+
+Name of the generated public age key
+
+_Type:_ string
+
+_Default:_ `"age-public"`
+
 ## sops\.path
 
 Encrypted SOPS file location relative to the root of the output\. For tests
@@ -23,6 +47,22 @@ relative to the root of the generated SOPS package and for flakes relative to
 the flake root\.
 
 _Type:_ string
+
+## sops\.private
+
+Name of the generated decrypted SOPS file
+
+_Type:_ string
+
+_Default:_ `"sops-private"`
+
+## sops\.public
+
+Name of the generated encrypted SOPS file
+
+_Type:_ string
+
+_Default:_ `"sops-public"`
 
 ## specification
 

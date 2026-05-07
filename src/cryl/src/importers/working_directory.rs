@@ -23,8 +23,11 @@ pub fn import_working_directory(path: &Path) -> CrylResult<()> {
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+  use std::path::PathBuf;
+
   use super::*;
-  use crate::common::TempCurrentDir;
+  use crate::common::{DirectoryListing, Format, TempCurrentDir};
   use crate::importers::import_copy;
   use serial_test::serial;
   use tempfile::TempDir;
@@ -62,9 +65,15 @@ mod tests {
     import_working_directory(&sub_dir).unwrap();
 
     // Now import a file using relative path from parent directory
-    let relative_from = "../source.txt";
-    let dest_file = Path::new("imported.txt");
-    import_copy(Path::new(relative_from), dest_file, false).unwrap();
+    let mut listing = HashMap::new();
+    listing.insert("imported.txt".to_owned(), PathBuf::from("source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
+    import_copy(&base_dir, Format::Json, &listing_path, false).unwrap();
 
     // Verify the file was imported to the current working directory
     let expected_dest = sub_dir.join("imported.txt");

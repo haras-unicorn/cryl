@@ -66,6 +66,9 @@ pub enum CrylError {
 
   #[error("Failed to get environment variable: {0}")]
   EnvVar(#[from] VarError),
+
+  #[error("In memory filesystem failure: {0}")]
+  InMemoryFilesystem(String),
 }
 
 impl CrylError {

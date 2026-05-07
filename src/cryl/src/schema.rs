@@ -19,11 +19,9 @@ pub struct Specification {
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(tag = "importer", rename_all = "kebab-case")]
 pub enum Import {
-  /// Import all files from a Vault KV path.
+  /// Import specified files from a Vault KV path.
   Vault { arguments: VaultImportArgs },
-  /// Import a single file from a Vault KV path.
-  VaultFile { arguments: VaultFileImportArgs },
-  /// Copy a file from local filesystem.
+  /// Copy specified files from a base file path.
   Copy { arguments: CopyImportArgs },
   /// Change working directory for subsequent import operations.
   #[serde(rename = "working-directory")]
@@ -108,11 +106,9 @@ pub enum Generation {
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(tag = "exporter", rename_all = "kebab-case")]
 pub enum Export {
-  /// Export all files in current directory to Vault KV path.
+  /// Export specified files in current directory to Vault KV path.
   Vault { arguments: VaultExportArgs },
-  /// Export a single file to Vault KV path.
-  VaultFile { arguments: VaultFileExportArgs },
-  /// Copy file to local filesystem.
+  /// Copy specified files in the current directory to a filesystem path.
   Copy { arguments: CopyExportArgs },
   /// Change working directory for subsequent export operations.
   #[serde(rename = "working-directory")]
@@ -126,33 +122,24 @@ pub enum Export {
 pub struct VaultImportArgs {
   /// Vault KV path to import from (e.g., "kv/my‑app").
   pub path: String,
+  /// Listing of secrets to import from the base path.
+  pub listing: DirectoryListing,
   /// If true, missing source does not cause failure.
   pub allow_fail: Option<bool>,
 }
 
-/// Arguments for single‑file Vault KV import.
-#[derive(Serialize, Deserialize, Debug, JsonSchema)]
-pub struct VaultFileImportArgs {
-  /// Vault KV path to import from.
-  pub path: String,
-  /// Key name of the file within the Vault secret.
-  pub file: String,
-  /// If true, missing source does not cause failure.
-  pub allow_fail: Option<bool>,
-}
-
-/// Arguments for file‑copy import.
+/// Arguments for copy import.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 pub struct CopyImportArgs {
-  /// Source file path.
+  /// Source path.
   pub from: String,
-  /// Destination file path.
-  pub to: String,
+  /// Listing of secrets to import from the source path.
+  pub listing: DirectoryListing,
   /// If true, missing source does not cause failure.
   pub allow_fail: Option<bool>,
 }
 
-/// Arguments for file‑copy generation.
+/// Arguments for copy generation.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 pub struct CopyGenArgs {
   /// Source file path.
@@ -482,25 +469,16 @@ pub struct WorkingDirectoryArgs {
 pub struct VaultExportArgs {
   /// Base Vault KV path (e.g., "kv/my‑app").
   pub path: String,
-  /// Directory listing type
+  /// Source file listing.
   pub listing: DirectoryListing,
 }
 
-/// Arguments for single‑file Vault KV export.
-#[derive(Serialize, Deserialize, Debug, JsonSchema)]
-pub struct VaultFileExportArgs {
-  /// Base Vault KV path.
-  pub path: String,
-  /// Local file to export (key becomes filename).
-  pub file: String,
-}
-
-/// Arguments for file‑copy export.
+/// Arguments for copy export.
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 pub struct CopyExportArgs {
-  /// Source file path.
-  pub from: String,
-  /// Destination file path.
+  /// Source file listing.
+  pub listing: DirectoryListing,
+  /// Base destination path.
   pub to: String,
 }
 

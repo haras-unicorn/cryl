@@ -4,7 +4,6 @@ use crate::{cli::*, exporters, importers};
 use crate::{generators, schema::*};
 use clap_stdin::FileOrStdin;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
   match cmd {
@@ -12,29 +11,36 @@ pub fn run_import_spec(cmd: &Import) -> CrylResult<()> {
       arguments:
         CopyImportArgs {
           from,
-          to,
+          listing,
           allow_fail,
         },
-    } => importers::import_copy(
-      Path::new(&from),
-      Path::new(&to),
-      allow_fail.unwrap_or(false),
-    ),
+    } => {
+      let (listing_format, listing_path) =
+        ensure_written_arg(listing, &format!("{from}-listing"))?;
+      importers::import_copy(
+        Path::new(&from),
+        listing_format,
+        &listing_path,
+        allow_fail.unwrap_or(false),
+      )
+    }
     Import::Vault {
-      arguments: VaultImportArgs { path, allow_fail },
-    } => importers::import_vault(path, allow_fail.unwrap_or(false)),
-    Import::VaultFile {
       arguments:
-        VaultFileImportArgs {
+        VaultImportArgs {
           path,
-          file,
+          listing,
           allow_fail,
         },
-    } => importers::import_vault_file(
-      path,
-      &PathBuf::from_str(file)?,
-      allow_fail.unwrap_or(false),
-    ),
+    } => {
+      let (listing_format, listing_path) =
+        ensure_written_arg(listing, &format!("{path}-listing"))?;
+      importers::import_vault(
+        path,
+        listing_format,
+        &listing_path,
+        allow_fail.unwrap_or(false),
+      )
+    }
     Import::WorkingDirectory {
       arguments: WorkingDirectoryImportArgs { path },
     } => importers::import_working_directory(Path::new(&path)),
@@ -592,8 +598,13 @@ pub fn run_generate_spec(
 pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
   match cmd {
     Export::Copy {
-      arguments: CopyExportArgs { from, to },
-    } => exporters::export_copy(Path::new(&from), Path::new(&to)),
+      arguments: CopyExportArgs { listing, to },
+    } => {
+      let (listing_format, listing_path) =
+        ensure_written_arg(listing, &format!("{to}-listing"))?;
+
+      exporters::export_copy(listing_format, &listing_path, Path::new(&to))
+    }
     Export::Vault {
       arguments: VaultExportArgs { path, listing },
     } => {
@@ -601,9 +612,6 @@ pub fn run_export_spec(cmd: &Export) -> CrylResult<()> {
         ensure_written_arg(listing, &format!("{path}-listing"))?;
       exporters::export_vault(path, listing_format, &listing_path)
     }
-    Export::VaultFile {
-      arguments: VaultFileExportArgs { path, file },
-    } => exporters::export_vault_file(path, &PathBuf::from_str(file)?),
     Export::WorkingDirectory {
       arguments: WorkingDirectoryExportArgs { path },
     } => exporters::export_working_directory(Path::new(&path)),
@@ -614,18 +622,28 @@ pub fn run_import_command(cmd: &ImportCommands) -> CrylResult<()> {
   match cmd {
     ImportCommands::Copy {
       from,
-      to,
-      allow_fail,
-    } => importers::import_copy(Path::new(&from), Path::new(&to), *allow_fail),
-    ImportCommands::Vault { path, allow_fail } => {
-      importers::import_vault(path, *allow_fail)
-    }
-    ImportCommands::VaultFile {
-      path,
-      file,
+      format,
+      listing,
       allow_fail,
     } => {
-      importers::import_vault_file(path, &PathBuf::from_str(file)?, *allow_fail)
+      let listing_path =
+        ensure_written_command(listing, *format, &format!("{from}-data"))?;
+      importers::import_copy(
+        Path::new(&from),
+        *format,
+        &listing_path,
+        *allow_fail,
+      )
+    }
+    ImportCommands::Vault {
+      path,
+      format,
+      listing,
+      allow_fail,
+    } => {
+      let listing_path =
+        ensure_written_command(listing, *format, &format!("{path}-data"))?;
+      importers::import_vault(path, *format, &listing_path, *allow_fail)
     }
     ImportCommands::WorkingDirectory { path } => {
       importers::import_working_directory(Path::new(&path))
@@ -1055,8 +1073,14 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
 
 pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
   match cmd {
-    ExportCommands::Copy { from, to } => {
-      exporters::export_copy(Path::new(from), Path::new(to))
+    ExportCommands::Copy {
+      format,
+      listing,
+      to,
+    } => {
+      let listing_path =
+        ensure_written_command(listing, *format, &format!("{to}-listing"))?;
+      exporters::export_copy(*format, &listing_path, Path::new(to))
     }
     ExportCommands::Vault {
       path,
@@ -1066,9 +1090,6 @@ pub fn run_export_command(cmd: &ExportCommands) -> CrylResult<()> {
       let listing_path =
         ensure_written_command(listing, *format, &format!("{path}-listing"))?;
       exporters::export_vault(path, *format, &listing_path)
-    }
-    ExportCommands::VaultFile { path, file } => {
-      exporters::export_vault_file(path, &PathBuf::from_str(file)?)
     }
     ExportCommands::WorkingDirectory { path } => {
       exporters::export_working_directory(Path::new(path))

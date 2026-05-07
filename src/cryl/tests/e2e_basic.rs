@@ -194,7 +194,8 @@ fn test_full_pipeline_with_copy() {
 [[imports]]
 importer = "copy"
 arguments.from = "{}"
-arguments.to = "imported.txt"
+arguments.listing.type = "map"
+arguments.listing.value."imported.txt" = "import.txt"
 
 exports = []
 
@@ -205,11 +206,12 @@ arguments.text = "generated data"
 
 [[exports]]
 exporter = "copy"
-arguments.from = "generated.txt"
+arguments.listing.type = "map"
+arguments.listing.value."export.txt" = "generated.txt"
 arguments.to = "{}"
 "#,
-    import_source.display(),
-    export_dest.display()
+    temp_dir.path().display(),
+    temp_dir.path().display()
   );
 
   fs::write(&spec_path, spec_content).unwrap();
