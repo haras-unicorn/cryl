@@ -1,6 +1,9 @@
+use itertools::{Either, Itertools};
+
 use super::{CrylError, CrylResult};
 use std::{
-  collections::{HashMap, HashSet},
+  any::Any,
+  collections::HashMap,
   path::{Path, PathBuf},
 };
 
@@ -58,67 +61,6 @@ pub fn read_file_if_exists<P: AsRef<Path>>(
   }
 }
 
-pub fn strip_current_directory<P: AsRef<Path>, C: AsRef<Path>>(
-  path: P,
-  current_dir: C,
-) -> PathBuf {
-  let path = path.as_ref();
-  let path = path.strip_prefix(".").unwrap_or(path);
-  path
-    .strip_prefix(current_dir.as_ref())
-    .unwrap_or(path)
-    .to_owned()
-}
-
-pub fn read_directory_files<P: AsRef<Path>>(
-  path: P,
-  recurse: bool,
-) -> CrylResult<Vec<PathBuf>> {
-  fn go(
-    paths: &mut Vec<PathBuf>,
-    visited: &mut HashSet<PathBuf>,
-    current_dir: &Path,
-    path: &Path,
-    recurse: bool,
-    recursed: bool,
-  ) -> CrylResult<()> {
-    if path.is_file() {
-      paths.push(strip_current_directory(path, current_dir));
-      return Ok(());
-    }
-
-    let canon = path.canonicalize()?;
-    if visited.contains(&canon) {
-      return Ok(());
-    }
-    visited.insert(canon);
-
-    if path.is_dir() && (recurse || !recursed) {
-      for entry in std::fs::read_dir(path)? {
-        go(paths, visited, current_dir, &entry?.path(), recurse, true)?;
-      }
-      return Ok(());
-    }
-
-    Ok(())
-  }
-
-  let mut paths = vec![];
-  let mut visited = HashSet::new();
-  let current_dir = std::env::current_dir()?;
-
-  go(
-    &mut paths,
-    &mut visited,
-    &current_dir,
-    path.as_ref(),
-    recurse,
-    false,
-  )?;
-
-  Ok(paths)
-}
-
 #[derive(
   Debug, Clone, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
 )]
@@ -134,52 +76,342 @@ pub enum DirectoryListing {
   Map(HashMap<String, PathBuf>),
 }
 
-pub fn list_directory<P: AsRef<Path>>(
-  path: P,
-  listing: DirectoryListing,
-) -> CrylResult<HashMap<String, PathBuf>> {
+#[derive(Debug, Clone)]
+pub enum InMemoryFilesystem {
+  File(Vec<u8>),
+  Dir(HashMap<String, InMemoryFilesystem>),
+}
+
+impl TryFrom<&serde_yaml::Value> for InMemoryFilesystem {
+  type Error = CrylError;
+
+  fn try_from(value: &serde_yaml::Value) -> Result<Self, Self::Error> {
+    if let Some(bytes) = value.as_str().map(|value| value.bytes()) {
+      return Ok(Self::File(bytes.collect()));
+    }
+
+    if let Some(map) = value.as_mapping() {
+      let mut result = HashMap::new();
+      for (key, value) in map {
+        let Some(key) = key.as_str() else {
+          continue;
+        };
+        let value = Self::try_from(value)?;
+        result.insert(key.to_owned(), value);
+      }
+
+      return Ok(Self::Dir(result));
+    }
+
+    Err(CrylError::InMemoryFilesystem(format!(
+      "Failed parsing YAML value of type '{:?}'",
+      value.type_id(),
+    )))
+  }
+}
+
+impl TryFrom<&serde_json::Value> for InMemoryFilesystem {
+  type Error = CrylError;
+
+  fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
+    if let Some(bytes) = value.as_str().map(|value| value.bytes()) {
+      return Ok(InMemoryFilesystem::File(bytes.collect()));
+    }
+
+    if let Some(map) = value.as_object() {
+      let mut result = HashMap::new();
+      for (key, value) in map {
+        let value = Self::try_from(value)?;
+        result.insert(key.to_owned(), value);
+      }
+      return Ok(Self::Dir(result));
+    }
+
+    Err(CrylError::InMemoryFilesystem(format!(
+      "Failed parsing JSON value of type '{:?}'",
+      value.type_id(),
+    )))
+  }
+}
+
+impl TryFrom<&toml::Value> for InMemoryFilesystem {
+  type Error = CrylError;
+
+  fn try_from(value: &toml::Value) -> Result<Self, Self::Error> {
+    if let Some(bytes) = value.as_str().map(|value| value.bytes()) {
+      return Ok(InMemoryFilesystem::File(bytes.collect()));
+    }
+
+    if let Some(map) = value.as_table() {
+      let mut result = HashMap::new();
+      for (key, value) in map {
+        let value = Self::try_from(value)?;
+        result.insert(key.to_owned(), value);
+      }
+      return Ok(Self::Dir(result));
+    }
+
+    Err(CrylError::InMemoryFilesystem(format!(
+      "Failed parsing TOML value of type '{:?}'",
+      value.type_id(),
+    )))
+  }
+}
+
+impl TryFrom<&Path> for InMemoryFilesystem {
+  type Error = CrylError;
+
+  fn try_from(value: &Path) -> Result<Self, Self::Error> {
+    if value.is_file() {
+      return Ok(Self::File(std::fs::read(value)?));
+    }
+
+    let mut result = HashMap::new();
+    for entry_result in value.read_dir()? {
+      let entry = entry_result?;
+
+      let key = entry
+        .path()
+        .strip_prefix(value)
+        .unwrap_or(&entry.path())
+        .as_os_str()
+        .to_string_lossy()
+        .to_string();
+      let value = Self::try_from(entry.path())?;
+      result.insert(key, value);
+    }
+    Ok(Self::Dir(result))
+  }
+}
+
+impl TryFrom<PathBuf> for InMemoryFilesystem {
+  type Error = CrylError;
+
+  fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
+    Self::try_from(value.as_path())
+  }
+}
+
+impl From<InMemoryFilesystem> for serde_yaml::Value {
+  fn from(val: InMemoryFilesystem) -> Self {
+    match val {
+      InMemoryFilesystem::File(content) => serde_yaml::Value::String(
+        String::from_utf8_lossy(content.as_slice()).to_string(),
+      ),
+      InMemoryFilesystem::Dir(map) => {
+        let mut result = serde_yaml::Mapping::new();
+        for (key, value) in map {
+          result.insert(
+            serde_yaml::Value::String(key),
+            InMemoryFilesystem::into(value),
+          );
+        }
+
+        serde_yaml::Value::Mapping(result)
+      }
+    }
+  }
+}
+
+impl From<InMemoryFilesystem> for serde_json::Value {
+  fn from(val: InMemoryFilesystem) -> Self {
+    match val {
+      InMemoryFilesystem::File(content) => serde_json::Value::String(
+        String::from_utf8_lossy(content.as_slice()).to_string(),
+      ),
+      InMemoryFilesystem::Dir(map) => {
+        let mut result = serde_json::Map::<String, serde_json::Value>::new();
+        for (key, value) in map {
+          result.insert(key, InMemoryFilesystem::into(value));
+        }
+
+        serde_json::Value::Object(result)
+      }
+    }
+  }
+}
+
+impl From<InMemoryFilesystem> for toml::Value {
+  fn from(val: InMemoryFilesystem) -> Self {
+    match val {
+      InMemoryFilesystem::File(content) => toml::Value::String(
+        String::from_utf8_lossy(content.as_slice()).to_string(),
+      ),
+      InMemoryFilesystem::Dir(map) => {
+        let mut result = toml::map::Map::<String, toml::Value>::new();
+        for (key, value) in map {
+          result.insert(key, InMemoryFilesystem::into(value));
+        }
+
+        toml::Value::Table(result)
+      }
+    }
+  }
+}
+
+impl InMemoryFilesystem {
+  pub fn trim_dir(
+    dir: &HashMap<String, InMemoryFilesystem>,
+  ) -> HashMap<String, Vec<u8>> {
+    let mut result = HashMap::new();
+    for (key, value) in dir {
+      if let InMemoryFilesystem::File(content) = value {
+        result.insert(key.clone(), content.clone());
+      }
+    }
+    result
+  }
+
+  pub fn flatten(
+    &self,
+    separator: &str,
+  ) -> Either<Vec<u8>, HashMap<String, Vec<u8>>> {
+    match self {
+      InMemoryFilesystem::File(content) => Either::Left(content.clone()),
+      InMemoryFilesystem::Dir(dir) => {
+        Either::Right(Self::flatten_dir(dir, separator))
+      }
+    }
+  }
+
+  pub fn flatten_dir(
+    map: &HashMap<String, InMemoryFilesystem>,
+    separator: &str,
+  ) -> HashMap<String, Vec<u8>> {
+    let mut result = HashMap::new();
+    for (key, value) in map {
+      match value.flatten(separator) {
+        Either::Left(content) => {
+          result.insert(key.clone(), content.clone());
+        }
+        Either::Right(inner) => {
+          for (sub_key, content) in inner {
+            result
+              .insert(key.to_owned() + separator + &sub_key, content.clone());
+          }
+        }
+      };
+    }
+    result
+  }
+
+  pub fn populate_list(
+    dir: &HashMap<String, InMemoryFilesystem>,
+    list: &Vec<PathBuf>,
+    allow_fail: bool,
+    separator: &str,
+  ) -> CrylResult<HashMap<String, Vec<u8>>> {
+    let flattened = Self::flatten_dir(dir, separator);
+    let mut result = HashMap::new();
+    for path in list {
+      let key = path
+        .strip_prefix(".")
+        .unwrap_or(path)
+        .iter()
+        .map(|component| component.to_string_lossy())
+        .join(separator);
+      let content = flattened.get(&key);
+      if let Some(content) = content {
+        result.insert(key, content.clone());
+      } else if !allow_fail {
+        return Err(CrylError::DirectoryListing(path.clone()));
+      }
+    }
+    Ok(result)
+  }
+
+  pub fn populate_map(
+    dir: &HashMap<String, InMemoryFilesystem>,
+    map: &HashMap<String, PathBuf>,
+    allow_fail: bool,
+    separator: &str,
+  ) -> CrylResult<HashMap<String, Vec<u8>>> {
+    let flattened = Self::flatten_dir(dir, separator);
+    let mut result = HashMap::new();
+    for (key, path) in map {
+      let path_key = path
+        .strip_prefix(".")
+        .unwrap_or(path)
+        .iter()
+        .map(|component| component.to_string_lossy())
+        .join(separator);
+      let content = flattened.get(&path_key);
+      if let Some(content) = content {
+        result.insert(key.clone(), content.clone());
+      } else if !allow_fail {
+        return Err(CrylError::DirectoryListing(path.clone()));
+      }
+    }
+    Ok(result)
+  }
+
+  pub fn from_listing(
+    listing: HashMap<String, Vec<u8>>,
+    separator: &str,
+  ) -> Self {
+    let mut result = HashMap::new();
+    for (key, content) in listing.into_iter() {
+      let components = key.split(separator).collect::<Vec<_>>();
+      let mut map = &mut result;
+      for (last, current) in
+        components.iter().enumerate().map(|(index, current)| {
+          (index == components.len().saturating_sub(1), *current)
+        })
+      {
+        if last {
+          map.insert(current.to_owned(), InMemoryFilesystem::File(content));
+          break;
+        } else {
+          map = if let InMemoryFilesystem::Dir(dir) = map
+            .entry(current.to_owned())
+            .or_insert(InMemoryFilesystem::Dir(HashMap::new()))
+          {
+            dir
+          } else {
+            #[allow(clippy::unreachable, reason = "i just put it in")]
+            {
+              unreachable!()
+            }
+          };
+        }
+      }
+    }
+    Self::Dir(result)
+  }
+}
+
+pub fn list_directory<
+  P: TryInto<InMemoryFilesystem, Error = CrylError> + Clone + std::fmt::Debug,
+>(
+  source: P,
+  listing: &DirectoryListing,
+  allow_fail: bool,
+  separator: &str,
+) -> CrylResult<HashMap<String, Vec<u8>>> {
+  let InMemoryFilesystem::Dir(dir) = source.clone().try_into()? else {
+    return Err(CrylError::InMemoryFilesystem(format!(
+      "A directory was expected when a file '{source:?}' was provided"
+    )));
+  };
+
   match listing {
-    DirectoryListing::Flat | DirectoryListing::Deep => {
-      read_directory_files(path, matches!(listing, DirectoryListing::Deep)).map(
-        |files| {
-          files
-            .into_iter()
-            .map(|file| (file.to_string_lossy().to_string(), file))
-            .collect::<HashMap<_, _>>()
-        },
-      )
+    DirectoryListing::Flat => Ok(InMemoryFilesystem::trim_dir(&dir)),
+    DirectoryListing::Deep => {
+      Ok(InMemoryFilesystem::flatten_dir(&dir, separator))
     }
-    DirectoryListing::List(list) => {
-      let current_dir = std::env::current_dir()?;
-      let read = read_directory_files(path, true)?;
-      let mut result_map = HashMap::new();
-      for file in list {
-        let stripped = strip_current_directory(&file, &current_dir);
-        if !read.contains(&stripped) {
-          return Err(CrylError::DirectoryListing(file));
-        }
-        result_map.insert(file.to_string_lossy().to_string(), stripped);
-      }
-      Ok(result_map)
-    }
-    DirectoryListing::Map(map) => {
-      let current_dir = std::env::current_dir()?;
-      let read = read_directory_files(path, true)?;
-      let mut result_map = HashMap::new();
-      for (key, file) in map {
-        let stripped = strip_current_directory(&file, &current_dir);
-        if !read.contains(&stripped) {
-          return Err(CrylError::DirectoryListing(file.clone()));
-        }
-        result_map.insert(key, stripped);
-      }
-      Ok(result_map)
-    }
+    DirectoryListing::List(list) => Ok(InMemoryFilesystem::populate_list(
+      &dir, list, allow_fail, separator,
+    )?),
+    DirectoryListing::Map(map) => Ok(InMemoryFilesystem::populate_map(
+      &dir, map, allow_fail, separator,
+    )?),
   }
 }
 
 #[cfg(test)]
 mod tests {
+  use std::str::FromStr;
+
   use super::*;
   use tempfile::TempDir;
 
@@ -283,164 +515,17 @@ mod tests {
   }
 
   #[test]
-  fn test_read_directory_files_recursively_reads_file() {
-    let temp = tempfile::NamedTempFile::new().unwrap();
-    std::fs::write(temp.path(), "content").unwrap();
-    assert_eq!(
-      read_directory_files(temp.path(), false).unwrap(),
-      vec![temp.path()]
-    );
-  }
-
-  #[test]
-  fn test_read_directory_files_recursively_follows_symlink() {
-    let original = tempfile::NamedTempFile::new().unwrap();
-    std::fs::write(original.path(), "content").unwrap();
-    let temp_dir = TempDir::new().unwrap();
-    let link = temp_dir.path().join("link");
-    symbolic_link(&original, &link).unwrap();
-    assert_eq!(read_directory_files(&link, false).unwrap(), vec![link]);
-  }
-
-  #[test]
-  fn test_read_directory_files_recursively_reads_dir() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("file");
-    std::fs::write(&file, "content").unwrap();
-    assert_eq!(
-      read_directory_files(temp_dir.path(), false).unwrap(),
-      vec![file]
-    );
-  }
-
-  #[test]
-  fn test_read_directory_files_recursively_reads_dir_recursively() {
-    let temp_dir = TempDir::new().unwrap();
-    let file = temp_dir.path().join("subdir").join("file");
-    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
-    std::fs::write(&file, "content").unwrap();
-    assert_eq!(
-      read_directory_files(temp_dir.path(), true).unwrap(),
-      vec![file]
-    );
-  }
-
-  #[test]
-  fn test_read_directory_files_empty_directory() {
-    let temp_dir = TempDir::new().unwrap();
-    assert_eq!(
-      read_directory_files(temp_dir.path(), false).unwrap(),
-      Vec::<PathBuf>::new()
-    );
-    assert_eq!(
-      read_directory_files(temp_dir.path(), true).unwrap(),
-      Vec::<PathBuf>::new()
-    );
-  }
-
-  #[test]
-  fn test_read_directory_files_nested_structure() {
-    let temp_dir = TempDir::new().unwrap();
-
-    // Create a complex structure
-    let file1 = temp_dir.path().join("root_file.txt");
-    let subdir1 = temp_dir.path().join("subdir1");
-    let subdir2 = temp_dir.path().join("subdir2");
-
-    std::fs::create_dir(&subdir1).unwrap();
-    std::fs::create_dir(&subdir2).unwrap();
-
-    let file2 = subdir1.join("file2.txt");
-    let file3 = subdir2.join("file3.txt");
-    let file4 = subdir1.join("nested").join("file4.txt");
-
-    std::fs::create_dir_all(file4.parent().unwrap()).unwrap();
-
-    for file in &[&file1, &file2, &file3, &file4] {
-      std::fs::write(file, "content").unwrap();
-    }
-
-    // Test non-recursive
-    let non_recursive = read_directory_files(temp_dir.path(), false).unwrap();
-    assert_eq!(non_recursive.len(), 1);
-    assert!(non_recursive.contains(&file1));
-
-    // Test recursive
-    let recursive = read_directory_files(temp_dir.path(), true).unwrap();
-    assert_eq!(recursive.len(), 4);
-    for file in &[&file1, &file2, &file3, &file4] {
-      assert!(recursive.contains(file));
-    }
-  }
-
-  #[test]
-  fn test_read_directory_files_symlink_loop() {
-    let temp_dir = TempDir::new().unwrap();
-
-    // Create symlink that points to parent directory
-    let subdir = temp_dir.path().join("subdir");
-    std::fs::create_dir(&subdir).unwrap();
-
-    let link_back = subdir.join("link_to_parent");
-    symbolic_link(temp_dir.path(), &link_back).unwrap();
-
-    // This should not cause infinite recursion
-    let result = read_directory_files(temp_dir.path(), true).unwrap();
-    assert!(result.is_empty());
-  }
-
-  #[test]
-  fn test_read_directory_files_mixed_types() {
-    let temp_dir = TempDir::new().unwrap();
-
-    // Create file, directory, and symlink
-    let file = temp_dir.path().join("file.txt");
-    let subdir = temp_dir.path().join("subdir");
-    let link = temp_dir.path().join("link.txt");
-
-    std::fs::write(&file, "content").unwrap();
-    std::fs::create_dir(&subdir).unwrap();
-    symbolic_link(&file, &link).unwrap();
-
-    let result = read_directory_files(temp_dir.path(), false).unwrap();
-
-    // Should find both file and symlink
-    assert_eq!(result.len(), 2);
-    assert!(result.contains(&file));
-    assert!(result.contains(&link));
-    assert!(!result.contains(&subdir)); // Shouldn't include directories
-  }
-
-  #[test]
-  fn test_read_directory_files_hidden_files() {
-    let temp_dir = TempDir::new().unwrap();
-
-    // Create hidden files (starting with dot)
-    let hidden = temp_dir.path().join(".hidden_file");
-    let normal = temp_dir.path().join("normal_file");
-
-    std::fs::write(&hidden, "content").unwrap();
-    std::fs::write(&normal, "content").unwrap();
-
-    let result = read_directory_files(temp_dir.path(), false).unwrap();
-
-    // Should find both hidden and normal files
-    assert_eq!(result.len(), 2);
-    assert!(result.contains(&hidden));
-    assert!(result.contains(&normal));
-  }
-
-  #[test]
   fn test_list_directory_flat() {
     let temp = TempDir::new().unwrap();
     std::fs::write(temp.path().join("a.txt"), "a").unwrap();
     std::fs::write(temp.path().join("b.rs"), "b").unwrap();
 
-    let result = list_directory(temp.path(), DirectoryListing::Flat).unwrap();
+    let result =
+      list_directory(temp.path(), &DirectoryListing::Flat, false, "/").unwrap();
 
     assert_eq!(result.len(), 2);
-    assert!(result.contains_key(&format!("{}/a.txt", temp.path().display())));
-    assert!(result.contains_key(&format!("{}/b.rs", temp.path().display())));
+    assert!(result.contains_key("a.txt"));
+    assert!(result.contains_key("b.rs"));
   }
 
   #[test]
@@ -450,12 +535,11 @@ mod tests {
     std::fs::create_dir(&sub).unwrap();
     std::fs::write(sub.join("nested.txt"), "test").unwrap();
 
-    let result = list_directory(temp.path(), DirectoryListing::Deep).unwrap();
+    let result =
+      list_directory(temp.path(), &DirectoryListing::Deep, false, "/").unwrap();
 
     assert_eq!(result.len(), 1);
-    assert!(
-      result.contains_key(&format!("{}/sub/nested.txt", temp.path().display()))
-    );
+    assert!(result.contains_key("sub/nested.txt"));
   }
 
   #[test]
@@ -467,13 +551,31 @@ mod tests {
     std::fs::write(&file1, "a").unwrap();
     std::fs::write(&file2, "b").unwrap();
 
-    let list = vec![file1.clone(), file2.clone()];
+    let list = vec![
+      file1.strip_prefix(temp.path()).unwrap().to_owned(),
+      file2.strip_prefix(temp.path()).unwrap().to_owned(),
+    ];
     let result =
-      list_directory(temp.path(), DirectoryListing::List(list)).unwrap();
+      list_directory(temp.path(), &DirectoryListing::List(list), false, "/")
+        .unwrap();
 
     assert_eq!(result.len(), 2);
-    assert_eq!(result[&file1.to_string_lossy().to_string()], file1);
-    assert_eq!(result[&file2.to_string_lossy().to_string()], file2);
+    assert_eq!(
+      result[&file1
+        .strip_prefix(temp.path())
+        .unwrap()
+        .to_string_lossy()
+        .to_string()],
+      std::fs::read(file1).unwrap()
+    );
+    assert_eq!(
+      result[&file2
+        .strip_prefix(temp.path())
+        .unwrap()
+        .to_string_lossy()
+        .to_string()],
+      std::fs::read(file2).unwrap()
+    );
   }
 
   #[test]
@@ -482,7 +584,8 @@ mod tests {
     let missing = temp.path().join("ghost.txt");
     let list = vec![missing];
 
-    let result = list_directory(temp.path(), DirectoryListing::List(list));
+    let result =
+      list_directory(temp.path(), &DirectoryListing::List(list), false, "/");
     assert!(result.is_err());
     assert!(matches!(result, Err(CrylError::DirectoryListing(_))));
   }
@@ -496,13 +599,30 @@ mod tests {
     std::fs::write(&file2, "b").unwrap();
 
     let mut map = HashMap::new();
-    map.insert("alias1".to_string(), file1.clone());
-    map.insert("alias2".to_string(), file2.clone());
+    map.insert(
+      "alias1".to_string(),
+      file1.strip_prefix(temp.path()).unwrap().to_owned(),
+    );
+    map.insert(
+      "alias2".to_string(),
+      file2.strip_prefix(temp.path()).unwrap().to_owned(),
+    );
 
-    let result =
-      list_directory(temp.path(), DirectoryListing::Map(map.clone())).unwrap();
+    let result = list_directory(
+      temp.path(),
+      &DirectoryListing::Map(map.clone()),
+      false,
+      "/",
+    )
+    .unwrap();
 
-    assert_eq!(result, map);
+    assert_eq!(
+      result,
+      HashMap::from([
+        ("alias1".to_string(), std::fs::read(file1).unwrap()),
+        ("alias2".to_string(), std::fs::read(file2).unwrap())
+      ])
+    );
   }
 
   #[test]
@@ -511,7 +631,8 @@ mod tests {
     let mut map = HashMap::new();
     map.insert("ghost".to_string(), temp.path().join("nonexistent.txt"));
 
-    let result = list_directory(temp.path(), DirectoryListing::Map(map));
+    let result =
+      list_directory(temp.path(), &DirectoryListing::Map(map), false, "/");
     assert!(result.is_err());
     assert!(matches!(result, Err(CrylError::DirectoryListing(_))));
   }
@@ -521,37 +642,138 @@ mod tests {
     let temp = TempDir::new().unwrap();
 
     // Flat on empty dir
-    let flat = list_directory(temp.path(), DirectoryListing::Flat).unwrap();
+    let flat =
+      list_directory(temp.path(), &DirectoryListing::Flat, false, "/").unwrap();
     assert!(flat.is_empty());
 
     // Deep on empty dir
-    let deep = list_directory(temp.path(), DirectoryListing::Deep).unwrap();
+    let deep =
+      list_directory(temp.path(), &DirectoryListing::Deep, false, "/").unwrap();
     assert!(deep.is_empty());
 
     // Custom list with no files should error
-    let list = DirectoryListing::List(vec![]);
-    let result = list_directory(temp.path(), list).unwrap();
+    let list = &DirectoryListing::List(vec![]);
+    let result = list_directory(temp.path(), list, false, "/").unwrap();
     assert!(result.is_empty());
 
     // Custom map with no files
-    let map = DirectoryListing::Map(HashMap::new());
-    let result = list_directory(temp.path(), map).unwrap();
+    let map = &DirectoryListing::Map(HashMap::new());
+    let result = list_directory(temp.path(), map, false, "/").unwrap();
     assert!(result.is_empty());
   }
 
   #[test]
   fn test_list_directory_symlink_in_dir() {
-    use std::os::unix::fs::symlink;
     let temp = TempDir::new().unwrap();
     let target = temp.path().join("target.txt");
     let link = temp.path().join("link.txt");
     std::fs::write(&target, "content").unwrap();
-    symlink(&target, &link).unwrap();
+    symbolic_link(&target, &link).unwrap();
 
-    let result = list_directory(temp.path(), DirectoryListing::Flat).unwrap();
+    let result =
+      list_directory(temp.path(), &DirectoryListing::Flat, false, "/").unwrap();
 
     // Should include symlink file entry
     assert_eq!(result.len(), 2);
-    assert!(result.contains_key(&link.to_string_lossy().to_string()));
+    assert!(
+      result.contains_key(
+        &link
+          .strip_prefix(temp.path())
+          .unwrap()
+          .to_string_lossy()
+          .to_string()
+      )
+    );
+  }
+
+  #[test]
+  fn test_list_directory_list_allow_fail() {
+    let temp = TempDir::new().unwrap();
+
+    let result = list_directory(
+      temp.path(),
+      &DirectoryListing::List(vec![PathBuf::from_str("some-file").unwrap()]),
+      true,
+      "/",
+    )
+    .unwrap();
+
+    // Should be empty
+    assert_eq!(result.len(), 0);
+  }
+
+  #[test]
+  fn test_list_directory_map_allow_fail() {
+    let temp = TempDir::new().unwrap();
+
+    let mut map = HashMap::new();
+    map.insert(
+      "some-file".to_owned(),
+      PathBuf::from_str("some-file").unwrap(),
+    );
+    let result =
+      list_directory(temp.path(), &DirectoryListing::Map(map), true, "/")
+        .unwrap();
+
+    // Should be empty
+    assert_eq!(result.len(), 0);
+  }
+
+  #[test]
+  fn test_in_memory_filesystem_yaml() {
+    let input: serde_yaml::Value = serde_yaml::from_str(
+      r#"
+     file1: "file1-bla"
+     file2: "file2-bla"
+     nested:
+       file3: "bla-bla"
+   "#,
+    )
+    .unwrap();
+
+    let filesystem: InMemoryFilesystem = (&input).try_into().unwrap();
+    let output: serde_yaml::Value = filesystem.try_into().unwrap();
+
+    assert_eq!(output, input);
+  }
+
+  #[test]
+  fn test_in_memory_filesystem_json() {
+    let input: serde_json::Value = serde_json::from_str(
+      r#"
+      {
+        "file1": "file1-bla",
+        "file2": "file2-bla",
+        "nested": {
+          "file3": "bla-bla"
+        }
+      }
+   "#,
+    )
+    .unwrap();
+
+    let filesystem: InMemoryFilesystem = (&input).try_into().unwrap();
+    let output: serde_json::Value = filesystem.try_into().unwrap();
+
+    assert_eq!(output, input);
+  }
+
+  #[test]
+  fn test_in_memory_filesystem_toml() {
+    let input: toml::Value = toml::from_str(
+      r#"
+      file1 = "file1-bla"
+      file2 = "file2-bla"
+
+      [nested]
+      file3 = "bla-bla"
+     "#,
+    )
+    .unwrap();
+
+    let filesystem: InMemoryFilesystem = (&input).try_into().unwrap();
+    let output: toml::Value = filesystem.try_into().unwrap();
+
+    assert_eq!(output, input);
   }
 }

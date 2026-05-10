@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
 
-use itertools::Itertools;
-
 use crate::common::{
   CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
   list_directory, save_atomic, serialize,
@@ -40,30 +38,19 @@ pub fn generate_sops(
   // Read and deserialize the listing file
   let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
 
-  // Keep in variable here so we can consume it with list_directory
-  let is_map = matches!(listing, DirectoryListing::Map(_));
-
-  // Process each value: check if it's a file path
-  let mut processed: HashMap<String, String> = HashMap::new();
-  for (key, value) in list_directory(std::env::current_dir()?, listing)? {
-    // Convert to kebab case
-    let key = if !is_map {
-      Path::new(&key)
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .join("-")
-    } else {
-      key
-    };
-
-    // Check if value is a file path and read it if so
-    let raw_value = std::fs::read_to_string(&value)?;
-
-    processed.insert(key, raw_value);
-  }
+  // list directory
+  let listed = list_directory(std::env::current_dir()?, &listing, false, "-")?;
 
   // Serialize to YAML for the private file
-  let yaml_content = serialize(&processed, Format::Yaml)?;
+  let yaml_content = serialize(
+    &listed
+      .into_iter()
+      .map(|(key, value)| {
+        (key, String::from_utf8_lossy(value.as_slice()).to_string())
+      })
+      .collect::<HashMap<_, _>>(),
+    Format::Yaml,
+  )?;
 
   // Save plaintext YAML with private permissions (600)
   save_atomic(private, yaml_content.as_bytes(), renew, false)?;

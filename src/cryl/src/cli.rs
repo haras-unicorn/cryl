@@ -147,8 +147,10 @@ pub enum ImportCommands {
   Copy {
     /// Source path
     from: String,
-    /// Destination path
-    to: String,
+    /// Input format for listing file
+    format: Format,
+    /// Listing of source files
+    listing: FileOrStdin,
     /// Allow failing to copy if source missing
     #[arg(long)]
     allow_fail: bool,
@@ -158,18 +160,10 @@ pub enum ImportCommands {
   Vault {
     /// Vault path to import from
     path: String,
-    /// Allow failing to import if source missing
-    #[arg(long)]
-    allow_fail: bool,
-  },
-
-  /// Import single file from Vault
-  #[command(name = "vault-file")]
-  VaultFile {
-    /// Vault path to import from
-    path: String,
-    /// File key to import
-    file: String,
+    /// Input format for listing file
+    format: Format,
+    /// Listing for destinations of files
+    listing: FileOrStdin,
     /// Allow failing to import if source missing
     #[arg(long)]
     allow_fail: bool,
@@ -730,8 +724,10 @@ pub enum GenerateCommands {
 pub enum ExportCommands {
   /// Copy a file
   Copy {
-    /// Source path
-    from: String,
+    /// Input format for listing file
+    format: Format,
+    /// Listing of source files
+    listing: FileOrStdin,
     /// Destination path
     to: String,
   },
@@ -740,19 +736,10 @@ pub enum ExportCommands {
   Vault {
     /// Base vault path
     path: String,
-    /// Directory listing format
+    /// Input format for listing file
     format: Format,
-    /// File containing directory listing value
+    /// Listing of source files
     listing: FileOrStdin,
-  },
-
-  /// Export single file to Vault
-  #[command(name = "vault-file")]
-  VaultFile {
-    /// Base vault path
-    path: String,
-    /// Local file to export
-    file: String,
   },
 
   /// Change working directory for exports

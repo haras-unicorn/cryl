@@ -1,24 +1,38 @@
-use crate::common::{CrylError, CrylResult, save_atomic};
-use std::path::Path;
+use crate::common::{
+  CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
+  list_directory, save_atomic,
+};
+use std::path::{Path, PathBuf};
 
-/// Copy importer - copies a file from source to destination
-pub fn import_copy(from: &Path, to: &Path, allow_fail: bool) -> CrylResult<()> {
+/// Copy importer - copies specified files from source to working directory
+pub fn import_copy(
+  from: &Path,
+  format: Format,
+  listing: &Path,
+  allow_fail: bool,
+) -> CrylResult<()> {
   // Check if source exists
-  if !from.exists() {
+  if !from.exists() || !from.is_dir() {
     if allow_fail {
       return Ok(());
     }
     return Err(CrylError::Import {
       importer: "copy".to_string(),
-      message: format!("Source file not found: {:?}", from),
+      message: format!("Source directory not found: {:?}", from),
     });
   }
 
-  // Read source content
-  let content = std::fs::read(from)?;
+  // Get listing first to exit early
+  let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
 
-  // Write to destination
-  save_atomic(to, content.as_slice(), true, false)?;
+  // List directory
+  for (key, content) in list_directory(from, &listing, allow_fail, "/")? {
+    // Read source content
+    let path = PathBuf::from_iter(key.split("/"));
+
+    // Write to destination
+    save_atomic(path, content.as_slice(), true, false)?;
+  }
 
   Ok(())
 }
@@ -26,74 +40,116 @@ pub fn import_copy(from: &Path, to: &Path, allow_fail: bool) -> CrylResult<()> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use tempfile::TempDir;
+  use crate::common::TempCurrentDir;
+  use serial_test::serial;
+  use std::collections::HashMap;
 
   #[test]
+  #[serial(working_directory)]
   fn test_import_copy_success() {
-    let temp = TempDir::new().unwrap();
-    let from = temp.path().join("source");
-    let to = temp.path().join("dest");
+    let temp = TempCurrentDir::new().unwrap();
+    let from_dir = temp.path().join("source_dir");
+    std::fs::create_dir_all(&from_dir).unwrap();
+    std::fs::write(from_dir.join("source.txt"), "test content").unwrap();
 
-    std::fs::write(&from, "test content").unwrap();
-    import_copy(&from, &to, false).unwrap();
+    let mut listing = HashMap::new();
+    listing.insert("output.txt".to_owned(), PathBuf::from("source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
 
-    assert!(to.exists());
-    let content = std::fs::read_to_string(&to).unwrap();
-    assert_eq!(content, "test content");
+    import_copy(&from_dir, Format::Json, &listing_path, false).unwrap();
+
+    let output = temp.path().join("output.txt");
+    assert!(output.exists());
+    assert_eq!(std::fs::read_to_string(output).unwrap(), "test content");
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_import_copy_missing_allow_fail() {
-    let temp = TempDir::new().unwrap();
-    let from = temp.path().join("nonexistent");
-    let to = temp.path().join("dest");
+    let temp = TempCurrentDir::new().unwrap();
+    let from_dir = temp.path().join("nonexistent_dir");
 
-    // Should succeed when allow_fail is true
-    import_copy(&from, &to, true).unwrap();
-    assert!(!to.exists());
+    let mut listing = HashMap::new();
+    listing.insert("out.txt".to_owned(), PathBuf::from("source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
+
+    import_copy(&from_dir, Format::Json, &listing_path, true).unwrap();
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_import_copy_missing_no_allow_fail() {
-    let temp = TempDir::new().unwrap();
-    let from = temp.path().join("nonexistent");
-    let to = temp.path().join("dest");
+    let temp = TempCurrentDir::new().unwrap();
+    let from_dir = temp.path().join("nonexistent_dir");
 
-    // Should fail when allow_fail is false
-    let result = import_copy(&from, &to, false);
+    let mut listing = HashMap::new();
+    listing.insert("out.txt".to_owned(), PathBuf::from("source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
+
+    let result = import_copy(&from_dir, Format::Json, &listing_path, false);
     assert!(result.is_err());
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_import_copy_from_subdir() {
-    let temp = TempDir::new().unwrap();
-    let from = temp.path().join("subdir").join("secret");
-    let to = temp.path().join("dest");
+    let temp = TempCurrentDir::new().unwrap();
+    let from_dir = temp.path().join("source_dir");
+    std::fs::create_dir_all(from_dir.join("subdir")).unwrap();
+    std::fs::write(from_dir.join("subdir/source.txt"), "test content").unwrap();
 
-    std::fs::create_dir_all(from.parent().unwrap()).unwrap();
-    std::fs::write(&from, "test content").unwrap();
+    let mut listing = HashMap::new();
+    listing.insert("output.txt".to_owned(), PathBuf::from("subdir/source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
 
-    let result = import_copy(&from, &to, false);
-    assert!(!result.is_err());
+    import_copy(&from_dir, Format::Json, &listing_path, false).unwrap();
 
-    assert!(to.exists());
-    let content = std::fs::read_to_string(&to).unwrap();
-    assert_eq!(content, "test content");
+    let output = temp.path().join("output.txt");
+    assert!(output.exists());
+    assert_eq!(std::fs::read_to_string(output).unwrap(), "test content");
   }
 
   #[test]
+  #[serial(working_directory)]
   fn test_import_copy_to_subdir() {
-    let temp = TempDir::new().unwrap();
-    let from = temp.path().join("secret");
-    let to = temp.path().join("subdir").join("dest");
+    let temp = TempCurrentDir::new().unwrap();
+    let from_dir = temp.path().join("source_dir");
+    std::fs::create_dir_all(&from_dir).unwrap();
+    std::fs::write(from_dir.join("source.txt"), "test content").unwrap();
 
-    std::fs::write(&from, "test content").unwrap();
+    let mut listing = HashMap::new();
+    listing.insert("sub/output.txt".to_owned(), PathBuf::from("source.txt"));
+    let listing_path = temp.path().join("listing.json");
+    serde_json::to_writer(
+      std::fs::File::create(&listing_path).unwrap(),
+      &DirectoryListing::Map(listing),
+    )
+    .unwrap();
 
-    let result = import_copy(&from, &to, false);
-    assert!(!result.is_err());
+    import_copy(&from_dir, Format::Json, &listing_path, false).unwrap();
 
-    assert!(to.exists());
-    let content = std::fs::read_to_string(&to).unwrap();
-    assert_eq!(content, "test content");
+    let output = temp.path().join("sub").join("output.txt");
+    assert!(output.exists());
+    assert_eq!(std::fs::read_to_string(output).unwrap(), "test content");
   }
 }

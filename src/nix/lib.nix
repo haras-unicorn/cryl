@@ -177,6 +177,18 @@
         };
 
         sops = {
+          private = lib.mkOption {
+            type = lib.types.str;
+            default = "sops-private";
+            description = "Name of the generated decrypted SOPS file";
+          };
+
+          public = lib.mkOption {
+            type = lib.types.str;
+            default = "sops-public";
+            description = "Name of the generated encrypted SOPS file";
+          };
+
           path = lib.mkOption (
             {
               type = lib.types.str;
@@ -196,6 +208,25 @@
           };
 
           age = {
+            private = lib.mkOption {
+              type = lib.types.str;
+              default = "age-private";
+              description = "Name of the generated private age key";
+            };
+
+            public = lib.mkOption {
+              type = lib.types.str;
+              default = "age-public";
+              description = "Name of the generated public age key";
+            };
+
+            export = lib.mkOption {
+              type = lib.types.bool;
+              default = config.sops.age.defaultExport;
+              defaultText = lib.literalMD "`true` for tests and `false` for flakes";
+              description = "Whether to export the private SOPS age file";
+            };
+
             path = lib.mkOption (
               {
                 type = lib.types.str;
@@ -208,6 +239,12 @@
               }
               // (if config.sops.age.defaultPath != null then { default = config.sops.age.defaultPath; } else { })
             );
+
+            defaultExport = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              internal = true;
+            };
 
             defaultPath = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
@@ -327,17 +364,17 @@
           {
             generator = "age-key";
             arguments = {
-              private = "age-private";
-              public = "age-public";
+              private = crylConfig.sops.age.private;
+              public = crylConfig.sops.age.public;
             };
           }
           {
             generator = "sops";
             arguments = {
               renew = true;
-              age = "age-public";
-              private = "sops-private";
-              public = "sops-public";
+              age = crylConfig.sops.age.public;
+              private = crylConfig.sops.private;
+              public = crylConfig.sops.public;
               secrets.type = "deep";
             };
           }
@@ -346,15 +383,16 @@
           {
             exporter = "copy";
             arguments = {
-              from = "sops-public";
-              to = "$out/${crylConfig.sops.path}";
-            };
-          }
-          {
-            exporter = "copy";
-            arguments = {
-              from = "age-private";
-              to = "$out/${crylConfig.sops.age.path}";
+              listing = {
+                type = "map";
+                value = {
+                  ${crylConfig.sops.path} = crylConfig.sops.public;
+                }
+                // lib.optionalAttrs crylConfig.sops.age.export {
+                  ${crylConfig.sops.age.path} = crylConfig.sops.age.private;
+                };
+              };
+              to = "$out";
             };
           }
         ];

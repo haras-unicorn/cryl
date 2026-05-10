@@ -1,7 +1,9 @@
-use crate::common::{CrylResult, Format, read_directory_files, serialize};
+use crate::common::{
+  CrylResult, DirectoryListing, Format, list_directory, serialize,
+};
 use crate::versions::{cryl_version, tool_version};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Information about a tool used during execution
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -69,12 +71,6 @@ impl Manifest {
     hex::encode(hasher.finalize())
   }
 
-  /// Compute hash of a file
-  pub fn compute_file_hash(path: &Path) -> CrylResult<String> {
-    let content = std::fs::read(path)?;
-    Ok(Self::compute_hash(&content))
-  }
-
   /// Record a tool that was used during execution
   pub fn record_tool(&mut self, tool: &str) {
     if let Ok(tool_path) = which::which(tool)
@@ -95,8 +91,12 @@ impl Manifest {
   }
 
   /// Record an output file and its hash
-  pub fn record_output(&mut self, path: &Path) -> CrylResult<()> {
-    let hash = Self::compute_file_hash(path)?;
+  pub fn record_output(
+    &mut self,
+    path: &Path,
+    value: Vec<u8>,
+  ) -> CrylResult<()> {
+    let hash = Self::compute_hash(value.as_slice());
     let path_str = path.to_string_lossy().to_string();
     // Strip leading "./" if present for cleaner paths
     let clean_path = if let Some(stripped) = path_str.strip_prefix("./") {
@@ -110,17 +110,14 @@ impl Manifest {
 
   /// Record all files in the current directory as outputs
   pub fn record_all_outputs(&mut self) -> CrylResult<()> {
-    for path in read_directory_files(std::env::current_dir()?, true)? {
-      if path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .map(|n| n.starts_with("cryl-manifest"))
-        .unwrap_or(false)
-      {
-        continue;
-      }
-
-      self.record_output(&path)?;
+    for (key, value) in list_directory(
+      std::env::current_dir()?,
+      &DirectoryListing::Deep,
+      false,
+      "/",
+    )? {
+      let path = PathBuf::from_iter(key.split("/"));
+      self.record_output(&path, value)?;
     }
 
     Ok(())

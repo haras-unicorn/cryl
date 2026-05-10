@@ -146,7 +146,7 @@ arguments.text = "my-secret-key-123"
   assert_eq!(json["data"]["data"]["secret.key"], "my-secret-key-123");
 }
 
-/// Test vault_file exporter for single file
+/// Test vault exporter for single file
 #[tokio::test]
 #[serial]
 async fn test_vault_file_export() {
@@ -164,9 +164,10 @@ async fn test_vault_file_export() {
 imports = []
 
 [[exports]]
-exporter = "vault-file"
+exporter = "vault"
 arguments.path = "kv/single-secret"
-arguments.file = "master.key"
+arguments.listing.type = "map"
+arguments.listing.value."master.key" = "master.key"
 
 [[generations]]
 generator = "text"
@@ -346,7 +347,7 @@ arguments.text = "should-not-be-exported"
   );
 }
 
-/// Test vault_file export with JSON data
+/// Test vault export with JSON data
 #[tokio::test]
 #[serial]
 async fn test_vault_file_export_json() {
@@ -363,9 +364,10 @@ async fn test_vault_file_export_json() {
 imports = []
 
 [[exports]]
-exporter = "vault-file"
+exporter = "vault"
 arguments.path = "kv/json-export"
-arguments.file = "data.json"
+arguments.listing.type = "map"
+arguments.listing.value."data.json" = "data.json"
 
 [[generations]]
 generator = "json"

@@ -552,14 +552,15 @@ exports = []
 [[imports]]
 importer = "copy"
 arguments.from = "{}"
-arguments.to = "imported"
+arguments.listing.type = "map"
+arguments.listing.value."imported" = "import-file"
 
 [[generations]]
 generator = "text"
 arguments.name = "generated"
 arguments.text = "generated-content"
 "#,
-    temp_dir.path().join("import-file").to_str().unwrap()
+    temp_dir.path().to_str().unwrap()
   );
 
   write_spec(temp_dir.path(), "spec.toml", &spec);

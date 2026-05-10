@@ -5,17 +5,22 @@ The following are all available exporters in cryl. The type corresponds to the
 
 ## Copy
 
-Copies a file overwriting destination if exists.
+Copies files overwriting destinations if they already exist.
 
 - Type: `copy`
 - Arguments:
-  - `from` (`path`): Source file to copy.
   - `to` (`path`): Destination path.
+  - `listing` (`DirectoryListing`): Determines which files will be copied into
+    the `<to>` directory. This importer interprets keys deeply, meaning it will
+    export subdirectories/subkeys to subdirectories in the `<to>` directory (ie.
+    the value `./secret/key` with path/key `subdir/file` will be exported to the
+    `key` file in the `<to>/secret` directory from the `file` file in the
+    `subdir` subdirectory of the working directory).
 
 ## Vault
 
 Exports all files in the current directory into a [Vault] KV store path using
-[`medusa`].
+[`medusa`] and [Vault] CLI.
 
 - Type: `vault`
 - Arguments:
@@ -24,15 +29,6 @@ Exports all files in the current directory into a [Vault] KV store path using
     the KV store. This exporter interprets keys deeply, meaning it will export
     subdirectories/subkeys to subpaths in the KV store (ie. the key/path
     `./subdir/file1` will go under the `<path>/subdir` secret and `file1` key).
-
-## Vault file
-
-Sends one file's contents into [Vault] KV.
-
-- Type: `vault-file`
-- Arguments:
-  - `path` (`string`): Base KV path. Slashes trimmed.
-  - `file` (`string`): Local file whose content becomes the value.
 
 ## Working directory
 

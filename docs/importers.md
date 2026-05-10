@@ -5,36 +5,34 @@ The following are all available importers in cryl. The `type` corresponds to the
 
 ## Copy
 
-Uses `cp -f` to copy a file.
+Copies files from an external directory.
 
 - Type: `copy`
 - Arguments:
-  - `from` (`path`): From where to copy the file.
-  - `to` (`path`): Where to put the file.
+  - `from` (`path`): From where to copy files.
+  - `listing` (`DirectoryListing`): Determines which files will be copied into
+    the working directory. This importer interprets keys deeply, meaning it will
+    import subdirectories/subkeys to subdirectories in the working directory
+    (ie. the value `./secret/key` with path/key `subdir/file` will be imported
+    from the `key` file in the `<from>/secret` directory to the `file` file in
+    the `subdir` subdirectory of the working directory).
   - `allow_fail` (`boolean`, `= false`): Allow failing to copy the file.
   - `renew` (`boolean`, `= false`): Overwrite the destination file if it exists.
 
 ## Vault
 
-Uses [`medusa`] to import multiple files from [Vault].
+Uses [`medusa`] and [Vault] CLI to import files from [Vault].
 
 - Type: `vault`
 - Arguments:
-  - `path` (`string`): [Vault] path where to load files from. The subkeys from
-    this path are interpreted deeply and will be saved into the working
-    directory into subdirectories (ie. the key `file` at path `<path>/subdir`
-    will be saved into `./subdir/file`).
-  - `allow_fail` (`boolean`, `= false`): Allow failing to load files.
-
-## Vault file
-
-Uses [Vault] CLI to import a single file from [Vault].
-
-- Type: `vault-file`
-- Arguments:
   - `path` (`string`): [Vault] path where to load files from.
-  - `file` (`string`): Key of the file to load.
-  - `allow_fail` (`boolean`, `= false`): Allow failing to load file.
+  - `listing` (`DirectoryListing`): Determines which files will be written into
+    the working directory. This importer interprets keys deeply, meaning it will
+    import subdirectories/subkeys to subdirectories in the working directory
+    (ie. the value `./secret/key` with path/key `subdir/file` will be imported
+    from the `key` key of the `<path>/secret` secret to the `file` file of the
+    `subdir` subdirectory of the working directory).
+  - `allow_fail` (`boolean`, `= false`): Allow failing to load files.
 
 ## Working directory
 

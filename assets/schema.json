@@ -166,25 +166,25 @@
       ]
     },
     "CopyExportArgs": {
-      "description": "Arguments for file‑copy export.",
+      "description": "Arguments for copy export.",
       "type": "object",
       "properties": {
-        "from": {
-          "description": "Source file path.",
-          "type": "string"
+        "listing": {
+          "description": "Source file listing.",
+          "$ref": "#/$defs/DirectoryListing"
         },
         "to": {
-          "description": "Destination file path.",
+          "description": "Base destination path.",
           "type": "string"
         }
       },
       "required": [
-        "from",
+        "listing",
         "to"
       ]
     },
     "CopyGenArgs": {
-      "description": "Arguments for file‑copy generation.",
+      "description": "Arguments for copy generation.",
       "type": "object",
       "properties": {
         "from": {
@@ -209,7 +209,7 @@
       ]
     },
     "CopyImportArgs": {
-      "description": "Arguments for file‑copy import.",
+      "description": "Arguments for copy import.",
       "type": "object",
       "properties": {
         "allow_fail": {
@@ -220,17 +220,17 @@
           ]
         },
         "from": {
-          "description": "Source file path.",
+          "description": "Source path.",
           "type": "string"
         },
-        "to": {
-          "description": "Destination file path.",
-          "type": "string"
+        "listing": {
+          "description": "Listing of secrets to import from the source path.",
+          "$ref": "#/$defs/DirectoryListing"
         }
       },
       "required": [
         "from",
-        "to"
+        "listing"
       ]
     },
     "DataGenArgs": {
@@ -376,7 +376,7 @@
       "description": "Export operation - pushes generated secrets to external systems.",
       "oneOf": [
         {
-          "description": "Export all files in current directory to Vault KV path.",
+          "description": "Export specified files in current directory to Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -393,24 +393,7 @@
           ]
         },
         {
-          "description": "Export a single file to Vault KV path.",
-          "type": "object",
-          "properties": {
-            "arguments": {
-              "$ref": "#/$defs/VaultFileExportArgs"
-            },
-            "exporter": {
-              "type": "string",
-              "const": "vault-file"
-            }
-          },
-          "required": [
-            "exporter",
-            "arguments"
-          ]
-        },
-        {
-          "description": "Copy file to local filesystem.",
+          "description": "Copy specified files in the current directory to a filesystem path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -1027,7 +1010,7 @@
       "description": "Import operation - brings existing data into the working directory.",
       "oneOf": [
         {
-          "description": "Import all files from a Vault KV path.",
+          "description": "Import specified files from a Vault KV path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -1044,24 +1027,7 @@
           ]
         },
         {
-          "description": "Import a single file from a Vault KV path.",
-          "type": "object",
-          "properties": {
-            "arguments": {
-              "$ref": "#/$defs/VaultFileImportArgs"
-            },
-            "importer": {
-              "type": "string",
-              "const": "vault-file"
-            }
-          },
-          "required": [
-            "importer",
-            "arguments"
-          ]
-        },
-        {
-          "description": "Copy a file from local filesystem.",
+          "description": "Copy specified files from a base file path.",
           "type": "object",
           "properties": {
             "arguments": {
@@ -1696,7 +1662,7 @@
       "type": "object",
       "properties": {
         "listing": {
-          "description": "Directory listing type",
+          "description": "Source file listing.",
           "$ref": "#/$defs/DirectoryListing"
         },
         "path": {
@@ -1707,49 +1673,6 @@
       "required": [
         "path",
         "listing"
-      ]
-    },
-    "VaultFileExportArgs": {
-      "description": "Arguments for single‑file Vault KV export.",
-      "type": "object",
-      "properties": {
-        "file": {
-          "description": "Local file to export (key becomes filename).",
-          "type": "string"
-        },
-        "path": {
-          "description": "Base Vault KV path.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "file"
-      ]
-    },
-    "VaultFileImportArgs": {
-      "description": "Arguments for single‑file Vault KV import.",
-      "type": "object",
-      "properties": {
-        "allow_fail": {
-          "description": "If true, missing source does not cause failure.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "file": {
-          "description": "Key name of the file within the Vault secret.",
-          "type": "string"
-        },
-        "path": {
-          "description": "Vault KV path to import from.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "file"
       ]
     },
     "VaultImportArgs": {
@@ -1763,13 +1686,18 @@
             "null"
           ]
         },
+        "listing": {
+          "description": "Listing of secrets to import from the base path.",
+          "$ref": "#/$defs/DirectoryListing"
+        },
         "path": {
           "description": "Vault KV path to import from (e.g., \"kv/my‑app\").",
           "type": "string"
         }
       },
       "required": [
-        "path"
+        "path",
+        "listing"
       ]
     },
     "WireguardKeyArgs": {

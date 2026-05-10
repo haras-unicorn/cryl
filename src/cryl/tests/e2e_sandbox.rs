@@ -143,8 +143,8 @@ imports = []
 
 [[exports]]
 exporter = "copy"
-arguments.from = "test.txt"
-arguments.to = "/dev/null"
+arguments.listing.type = "flat"
+arguments.to = "."
 
 [[generations]]
 generator = "text"
@@ -182,8 +182,9 @@ exports = []
 
 [[imports]]
 importer = "copy"
-arguments.from = "source.txt"
-arguments.to = "dest.txt"
+arguments.listing.type = "map"
+arguments.listing.value."dest.txt" = "source.txt"
+arguments.from = "."
 arguments.allow_fail = true
 
 [[generations]]
@@ -228,13 +229,15 @@ exports = []
 
 [[imports]]
 importer = "copy"
-arguments.from = "/target2/file"
-arguments.to = "source2-file"
+arguments.from = "/target2"
+arguments.listing.type = "map"
+arguments.listing.value."source2-file" = "file"
 
 [[imports]]
 importer = "copy"
-arguments.from = "{}/file"
-arguments.to = "source-file"
+arguments.from = "{}"
+arguments.listing.type = "map"
+arguments.listing.value."source-file" = "file"
 
 [[generations]]
 generator = "text"
@@ -287,8 +290,9 @@ fn test_sandbox_with_binds() {
     r#"
 [[imports]]
 importer = "copy"
-arguments.from = "/target2/file"
-arguments.to = "source2-file"
+arguments.from = "/target2"
+arguments.listing.type = "map"
+arguments.listing.value."source2-file" = "file"
 
 [[generations]]
 generator = "text"
@@ -297,8 +301,9 @@ arguments.text = "test"
 
 [[exports]]
 exporter = "copy"
-arguments.from = "source2-file"
-arguments.to = "{}/file"
+arguments.to = "{}"
+arguments.listing.type = "map"
+arguments.listing.value."file" = "source2-file"
 "#,
     source_dir.to_str().unwrap()
   );
