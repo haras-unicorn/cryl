@@ -1,6 +1,7 @@
 {
   self,
   inputs,
+  lib,
   ...
 }:
 
@@ -201,6 +202,35 @@
             // (if config.sops.defaultPath != null then { default = config.sops.defaultPath; } else { })
           );
 
+          secrets = lib.mkOption {
+            type = lib.types.attrTag {
+              flat = lib.mkOption {
+                type = self.lib.types.literal null;
+                default = null;
+                description = "Flat listing type";
+              };
+              deep = lib.mkOption {
+                type = self.lib.types.literal null;
+                default = null;
+                description = "Deep listing type";
+              };
+              list = lib.mkOption {
+                type = lib.types.listOf lib.types.path;
+                default = [ ];
+                description = "List listing type";
+              };
+              map = lib.mkOption {
+                type = lib.types.attrsOf lib.types.path;
+                default = { };
+                description = "Map listing type";
+              };
+            };
+            default = {
+              deep = null;
+            };
+            description = "SOPS secrets listing";
+          };
+
           defaultPath = lib.mkOption {
             type = lib.types.nullOr lib.types.str;
             default = null;
@@ -375,7 +405,14 @@
               age = crylConfig.sops.age.public;
               private = crylConfig.sops.private;
               public = crylConfig.sops.public;
-              secrets.type = "deep";
+              secrets =
+                let
+                  type = builtins.head (builtins.attrNames crylConfig.sops.secrets);
+                in
+                {
+                  inherit type;
+                }
+                // (if type == "map" || type == "list" then { value = crylConfig.sops.secrets.${type}; } else { });
             };
           }
         ];
@@ -497,5 +534,15 @@
           }
         ];
       };
+    };
+
+  flake.lib.types.literal =
+    value:
+    lib.types.mkOptionType {
+      name = "literal";
+      description = "literal value '${builtins.toString value}'";
+      descriptionClass = "noun";
+      check = toCheck: toCheck == value;
+      merge = lib.options.mergeOneOption;
     };
 }
