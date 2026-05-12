@@ -1,6 +1,5 @@
 use crate::common::{
-  CrylError, CrylResult, DirectoryListing, Format, deserialize_from_file,
-  list_directory,
+  CrylResult, DirectoryListing, Format, deserialize_from_file, list_directory,
 };
 use std::path::{Path, PathBuf};
 
@@ -10,14 +9,6 @@ pub fn export_copy(
   listing: &Path,
   to: &Path,
 ) -> CrylResult<()> {
-  // Check if destination exists
-  if !to.exists() || !to.is_dir() {
-    return Err(CrylError::Export {
-      exporter: "copy".to_string(),
-      message: format!("Destination invalid: {:?}", to),
-    });
-  }
-
   // Get listing first to exit early
   let listing: DirectoryListing = deserialize_from_file(listing, Some(format))?;
 
