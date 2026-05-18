@@ -168,6 +168,15 @@ Generates a Wireguard key pair and saves:
   - `private` (`path`): Destination for the private key.
   - `renew` (`boolean`, `= false`): Overwrite existing files.
 
+## CephFS Key
+
+Generates a CephFS key and saves it to `name`.
+
+- Type: `ceph-key`
+- Arguments:
+  - `name` (`path`): Destination for the key.
+  - `renew` (`boolean`, `= false`): Overwrite existing key.
+
 ## Key split
 
 Splits a key using Shamir secret sharing (via ssss-split) and writes each share

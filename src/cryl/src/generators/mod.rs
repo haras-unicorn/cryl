@@ -1,6 +1,7 @@
 //! Generator implementations for cryl
 
 mod age_key;
+mod ceph_key;
 mod cockroach_ca;
 mod cockroach_client_cert;
 mod cockroach_node_cert;
@@ -34,6 +35,7 @@ mod working_directory;
 mod yaml;
 
 pub use age_key::*;
+pub use ceph_key::*;
 pub use cockroach_ca::*;
 pub use cockroach_client_cert::*;
 pub use cockroach_node_cert::*;

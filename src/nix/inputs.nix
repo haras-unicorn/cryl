@@ -21,6 +21,7 @@
           cockroachdb
           bubblewrap
           nushell
+          ceph
           ;
       };
     in

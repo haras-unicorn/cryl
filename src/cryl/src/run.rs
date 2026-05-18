@@ -384,6 +384,7 @@ fn run_sandbox(
     "nebula-cert",
     "ssss-split",
     "ssss-combine",
+    "ceph-authtool",
   ];
 
   for tool in &basic_tools {

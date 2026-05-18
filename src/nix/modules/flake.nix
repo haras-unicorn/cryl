@@ -26,8 +26,31 @@ in
                   crylSelf.lib.submodules.flakeOrTest
                 ];
 
-                nixosConfigurations = builtins.mapAttrs (_: nixos: nixos.config) self.nixosConfigurations;
-                defaultSandboxed = true;
+                options = {
+                  packages = lib.mkOption {
+                    type = lib.types.attrsOf lib.types.package;
+                    default = builtins.listToAttrs (
+                      builtins.map (system: {
+                        name = system;
+                        value = crylSelf.packages.${system}.cryl;
+                      }) crylSelf.lib.systems
+                    );
+                    defaultText = lib.literalExpression ''
+                      builtins.listToAttrs (
+                        builtins.map (system: {
+                          name = system;
+                          value = crylSelf.packages.''${system}.cryl;
+                        }) crylSelf.lib.systems
+                      )
+                    '';
+                    description = "Cryl packages to use per system to run specifications";
+                  };
+                };
+
+                config = {
+                  nixosConfigurations = builtins.mapAttrs (_: nixos: nixos.config) self.nixosConfigurations;
+                  defaultSandboxed = true;
+                };
               }
             );
             default = { };
@@ -89,7 +112,7 @@ in
                     value = pkgs.writeShellApplication {
                       name = "cryl-${name}";
                       runtimeInputs = [
-                        crylSelf.packages.${system}.cryl
+                        config.flake.cryl.packages.${system}
                         crylSelf.packages.${system}.flake-root
                       ];
                       text = ''

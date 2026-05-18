@@ -26,7 +26,6 @@ in
               {
                 lib,
                 config,
-                pkgs,
                 ...
               }:
               {
@@ -35,6 +34,13 @@ in
                 ];
 
                 options = {
+                  package = lib.mkOption {
+                    type = lib.types.package;
+                    default = crylSelf.packages.${pkgs.stdenv.hostPlatform.system}.cryl;
+                    defaultText = lib.literalExpression "crylSelf.packages.${pkgs.stdenv.hostPlatform.system}.cryl";
+                    description = "Cryl package to use for running specifications";
+                  };
+
                   sops = {
                     specifications = lib.mkOption {
                       type = lib.types.listOf (lib.types.enum (builtins.attrNames config.specifications));
@@ -78,7 +84,7 @@ in
             in
             pkgs.runCommand "cryl-sops-package"
               {
-                nativeBuildInputs = [ crylSelf.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+                nativeBuildInputs = [ cfg.package ];
               }
               ''
                 mkdir -p $out
