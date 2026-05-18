@@ -350,6 +350,16 @@ pub enum GenerateCommands {
     renew: bool,
   },
 
+  /// Generates a CephFS key
+  #[command(name = "ceph-key")]
+  CephKey {
+    /// Destination file name
+    name: String,
+    /// Overwrite if exists
+    #[arg(long)]
+    renew: bool,
+  },
+
   /// Split key into Shamir shares
   #[command(name = "key-split")]
   KeySplit {

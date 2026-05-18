@@ -31,3 +31,4 @@ words:
   - libcrypto
   - subdirs
   - itertools
+  - authtool

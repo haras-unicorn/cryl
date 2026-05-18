@@ -64,6 +64,52 @@ _Type:_ string
 
 _Default:_ `"sops-public"`
 
+## sops\.secrets
+
+SOPS secrets listing
+
+_Type:_ attribute-tagged union
+
+_Default:_
+
+```
+{
+  deep = null;
+}
+```
+
+## sops\.secrets\.deep
+
+Deep listing type
+
+_Type:_ literal value ‘’
+
+_Default:_ `null`
+
+## sops\.secrets\.flat
+
+Flat listing type
+
+_Type:_ literal value ‘’
+
+_Default:_ `null`
+
+## sops\.secrets\.list
+
+List listing type
+
+_Type:_ list of absolute path
+
+_Default:_ `[ ]`
+
+## sops\.secrets\.map
+
+Map listing type
+
+_Type:_ attribute set of absolute path
+
+_Default:_ `{ }`
+
 ## specification
 
 Cryl specification for this nixos configuration or home configuration\.

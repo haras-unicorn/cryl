@@ -57,6 +57,26 @@
         "private"
       ]
     },
+    "CephKeyArgs": {
+      "description": "Arguments for CephFS key generation.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Destination file path.",
+          "type": "string"
+        },
+        "renew": {
+          "description": "Overwrite key if is exists.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
     "CockroachCaArgs": {
       "description": "Arguments for CockroachDB CA certificate generation.",
       "type": "object",
@@ -679,6 +699,23 @@
             "generator": {
               "type": "string",
               "const": "wireguard-key"
+            }
+          },
+          "required": [
+            "generator",
+            "arguments"
+          ]
+        },
+        {
+          "description": "Generate CephFS key.",
+          "type": "object",
+          "properties": {
+            "arguments": {
+              "$ref": "#/$defs/CephKeyArgs"
+            },
+            "generator": {
+              "type": "string",
+              "const": "ceph-key"
             }
           },
           "required": [

@@ -65,6 +65,8 @@ pub enum Generation {
   SshKey { arguments: SshKeyArgs },
   /// Generate WireGuard keypair.
   WireguardKey { arguments: WireguardKeyArgs },
+  /// Generate CephFS key.
+  CephKey { arguments: CephKeyArgs },
   /// Generate TLS Root CA certificate (EC P‑256).
   TlsRoot { arguments: TlsRootArgs },
   /// Generate TLS Intermediate CA certificate (EC P‑256).
@@ -267,6 +269,15 @@ pub struct WireguardKeyArgs {
   /// Path to save the private key.
   pub private: String,
   /// Overwrite both key files if they exist.
+  pub renew: Option<bool>,
+}
+
+/// Arguments for CephFS key generation.
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
+pub struct CephKeyArgs {
+  /// Destination file path.
+  pub name: String,
+  /// Overwrite key if is exists.
   pub renew: Option<bool>,
 }
 

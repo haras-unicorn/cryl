@@ -167,6 +167,11 @@ pub fn run_generate_spec(
       Path::new(&private),
       renew.unwrap_or(false),
     ),
+    Generation::CephKey {
+      arguments: CephKeyArgs { name, renew },
+    } => {
+      generators::generate_ceph_key(Path::new(&name), renew.unwrap_or(false))
+    }
     Generation::KeySplit {
       arguments:
         KeySplitArgs {
@@ -727,6 +732,9 @@ pub fn run_generate_command(cmd: &GenerateCommands) -> CrylResult<()> {
       Path::new(private),
       *renew,
     ),
+    GenerateCommands::CephKey { name, renew } => {
+      generators::generate_ceph_key(Path::new(name), *renew)
+    }
     GenerateCommands::KeySplit {
       key,
       prefix,
