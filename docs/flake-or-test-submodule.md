@@ -4,9 +4,17 @@ Whether to enable cryl\.
 
 _Type:_ boolean
 
-_Default:_ `false`
+_Default:_
 
-_Example:_ `true`
+```nix
+false
+```
+
+_Example:_
+
+```nix
+true
+```
 
 ## extraArgs
 
@@ -14,7 +22,11 @@ Extra cryl arguments
 
 _Type:_ list of string
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## sandboxed
 
@@ -30,7 +42,11 @@ Cryl specification attrset
 
 _Type:_ attribute set of (submodule)
 
-_Default:_ `{ }`
+_Default:_
+
+```nix
+{ }
+```
 
 ## specifications\.\<name>\.exports
 
@@ -38,7 +54,11 @@ Cryl exports specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## specifications\.\<name>\.generations
 
@@ -46,7 +66,11 @@ Cryl generations specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## specifications\.\<name>\.imports
 
@@ -54,4 +78,8 @@ Cryl imports specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```

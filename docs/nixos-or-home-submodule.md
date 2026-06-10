@@ -4,9 +4,17 @@ Whether to enable cryl\.
 
 _Type:_ boolean
 
-_Default:_ `false`
+_Default:_
 
-_Example:_ `true`
+```nix
+false
+```
+
+_Example:_
+
+```nix
+true
+```
 
 ## sops\.age\.export
 
@@ -30,7 +38,11 @@ Name of the generated private age key
 
 _Type:_ string
 
-_Default:_ `"age-private"`
+_Default:_
+
+```nix
+"age-private"
+```
 
 ## sops\.age\.public
 
@@ -38,7 +50,11 @@ Name of the generated public age key
 
 _Type:_ string
 
-_Default:_ `"age-public"`
+_Default:_
+
+```nix
+"age-public"
+```
 
 ## sops\.path
 
@@ -54,7 +70,11 @@ Name of the generated decrypted SOPS file
 
 _Type:_ string
 
-_Default:_ `"sops-private"`
+_Default:_
+
+```nix
+"sops-private"
+```
 
 ## sops\.public
 
@@ -62,17 +82,21 @@ Name of the generated encrypted SOPS file
 
 _Type:_ string
 
-_Default:_ `"sops-public"`
+_Default:_
+
+```nix
+"sops-public"
+```
 
 ## sops\.secrets
 
 SOPS secrets listing
 
-_Type:_ attribute-tagged union
+_Type:_ attribute-tagged union with choices: deep, flat, list, map
 
 _Default:_
 
-```
+```nix
 {
   deep = null;
 }
@@ -84,7 +108,11 @@ Deep listing type
 
 _Type:_ literal value ‘’
 
-_Default:_ `null`
+_Default:_
+
+```nix
+null
+```
 
 ## sops\.secrets\.flat
 
@@ -92,7 +120,11 @@ Flat listing type
 
 _Type:_ literal value ‘’
 
-_Default:_ `null`
+_Default:_
+
+```nix
+null
+```
 
 ## sops\.secrets\.list
 
@@ -100,7 +132,11 @@ List listing type
 
 _Type:_ list of absolute path
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## sops\.secrets\.map
 
@@ -108,7 +144,11 @@ Map listing type
 
 _Type:_ attribute set of absolute path
 
-_Default:_ `{ }`
+_Default:_
+
+```nix
+{ }
+```
 
 ## specification
 
@@ -116,7 +156,11 @@ Cryl specification for this nixos configuration or home configuration\.
 
 _Type:_ submodule
 
-_Default:_ `{ }`
+_Default:_
+
+```nix
+{ }
+```
 
 ## specification\.exports
 
@@ -124,7 +168,11 @@ Cryl exports specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## specification\.generations
 
@@ -132,7 +180,11 @@ Cryl generations specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```
 
 ## specification\.imports
 
@@ -140,4 +192,8 @@ Cryl imports specification value\.
 
 _Type:_ list of raw value
 
-_Default:_ `[ ]`
+_Default:_
+
+```nix
+[ ]
+```

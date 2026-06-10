@@ -10,7 +10,7 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4"
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 schemars = "1.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -19,7 +19,7 @@ toml = "0.8"
 thiserror = "1.0"
 sha2 = "0.10"
 hex = "0.4"
-tempfile = "3.0"
+tempfile = "3.27"
 which = "6.0"
 mustache = "0.9"
 itertools = "0.14.0"
@@ -27,10 +27,10 @@ clap-stdin = "0.8.1"
 
 [dev-dependencies]
 testcontainers = { version = "0.27.1", features = ["host-port-exposure"] }
-tokio = { version = "1.50.0", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 anyhow = "1.0.102"
 base64 = "0.22.1"
-reqwest = "0.13.2"
-assert_cmd = "2.0"
-predicates = "3.0"
-serial_test = "3.0"
+reqwest = "0.13.4"
+assert_cmd = "2.2"
+predicates = "3.1"
+serial_test = "3.5"
