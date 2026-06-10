@@ -18,7 +18,6 @@ ignoreWords:
   - naersk
   - pname
   - sshpass
-  - nixos
   - vhost
   - vsock
   - virtualisation
