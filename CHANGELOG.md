@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/haras-unicorn/cryl/compare/v0.4.0...v0.4.1) - 2026-06-10
+
+### Added
+
+- *(generators/ceph-key)* add ceph-key generator ([#42](https://github.com/haras-unicorn/cryl/pull/42))
+- *(exporters/copy)* remove requirement that the destination dir exists ([#40](https://github.com/haras-unicorn/cryl/pull/40))
+
+### Other
+
+- update to nixos-26.05 ([#43](https://github.com/haras-unicorn/cryl/pull/43))
+
 ## [0.4.0](https://github.com/haras-unicorn/cryl/compare/v0.3.0...v0.4.0) - 2026-05-10
 
 ### Added
