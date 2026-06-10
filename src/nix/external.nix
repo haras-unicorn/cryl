@@ -20,7 +20,7 @@
         inherit (pkgs)
           git
           nil
-          nixfmt-rfc-style
+          nixfmt
           markdownlint-cli
           marksman
           mdbook
@@ -29,14 +29,12 @@
           delta
           cachix
           release-plz
-          ;
-
-        inherit (pkgs.nodePackages)
           markdown-link-check
           cspell
           prettier
           vscode-langservers-extracted
           yaml-language-server
+          cargo-edit
           ;
       };
     in
